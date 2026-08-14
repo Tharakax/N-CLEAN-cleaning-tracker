@@ -12,7 +12,34 @@ const placeSchema = new mongoose.Schema(
       required: [true, 'Address is required'],
       trim: true,
     },
-    googleMapUrl: {
+    location: {
+      type: {
+        type: String,
+        enum: ['Point'],
+        default: 'Point',
+        required: true,
+      },
+      coordinates: {
+        type: [Number], // [longitude, latitude]
+        required: [true, 'Location coordinates [longitude, latitude] are required'],
+        validate: {
+          validator: function (coords) {
+            return (
+              Array.isArray(coords) &&
+              coords.length === 2 &&
+              typeof coords[0] === 'number' &&
+              typeof coords[1] === 'number' &&
+              coords[0] >= -180 &&
+              coords[0] <= 180 &&
+              coords[1] >= -90 &&
+              coords[1] <= 90
+            );
+          },
+          message: 'Coordinates must be [longitude, latitude] where longitude is between -180 and 180 and latitude is between -90 and 90',
+        },
+      },
+    },
+    googleMapsUrl: {
       type: String,
       trim: true,
     },
@@ -69,5 +96,8 @@ const placeSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+// 2dsphere index on location for GeoJSON spatial queries
+placeSchema.index({ location: '2dsphere' });
 
 module.exports = mongoose.model('Place', placeSchema);

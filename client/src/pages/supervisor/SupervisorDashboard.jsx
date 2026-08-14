@@ -213,9 +213,13 @@ const PlaceCard = ({ place, onDelete }) => {
         )}
 
         <div className="place-card-footer">
-          {place.googleMapUrl ? (
+          {place.googleMapsUrl || place.googleMapUrl || (place.location?.coordinates && `https://www.google.com/maps?q=${place.location.coordinates[1]},${place.location.coordinates[0]}`) ? (
             <a
-              href={place.googleMapUrl}
+              href={
+                place.googleMapsUrl ||
+                place.googleMapUrl ||
+                `https://www.google.com/maps?q=${place.location.coordinates[1]},${place.location.coordinates[0]}`
+              }
               target="_blank"
               rel="noopener noreferrer"
               className="map-btn-link"

@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import API from '../api/axios';
 import MediaUpload from '../utils/mediaUpload';
+import GoogleMapLocationPicker from './GoogleMapLocationPicker';
 
 const AddPlaceModal = ({ onClose, onCreated }) => {
   const [form, setForm] = useState({
     name: '',
     address: '',
-    googleMapUrl: '',
     estimatedTimeMinutes: 60,
     frequency: 'daily',
     customDate: '',
@@ -14,6 +14,13 @@ const AddPlaceModal = ({ onClose, onCreated }) => {
     workersNeeded: 1,
     timeOfDay: 'anytime',
   });
+
+  const [locationData, setLocationData] = useState({
+    latitude: null,
+    longitude: null,
+    googleMapsUrl: '',
+  });
+
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [previews, setPreviews] = useState([]);
   const [uploading, setUploading] = useState(false);
@@ -23,6 +30,19 @@ const AddPlaceModal = ({ onClose, onCreated }) => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleLocationSelect = (loc) => {
+    setLocationData({
+      latitude: loc.latitude,
+      longitude: loc.longitude,
+      googleMapsUrl: loc.googleMapsUrl,
+    });
+
+    // If autocomplete provides an address and address field is empty, pre-fill it
+    if (loc.address && !form.address) {
+      setForm((prev) => ({ ...prev, address: loc.address }));
+    }
   };
 
   const handleFileSelect = (e) => {
@@ -57,6 +77,21 @@ const AddPlaceModal = ({ onClose, onCreated }) => {
     e.preventDefault();
     setError('');
 
+    // Validation
+    if (
+      locationData.latitude === null ||
+      locationData.longitude === null ||
+      isNaN(locationData.latitude) ||
+      isNaN(locationData.longitude) ||
+      locationData.latitude < -90 ||
+      locationData.latitude > 90 ||
+      locationData.longitude < -180 ||
+      locationData.longitude > 180
+    ) {
+      setError('Please select a valid location on the Google Map (Latitude: -90 to 90, Longitude: -180 to 180).');
+      return;
+    }
+
     if (form.frequency === 'custom' && !form.customDate) {
       setError('Please select a custom date for custom frequency.');
       return;
@@ -76,9 +111,12 @@ const AddPlaceModal = ({ onClose, onCreated }) => {
 
       setUploadProgressText('Saving place details…');
 
-      // 2. Save place details with Supabase image URLs in DB
+      // 2. Save place details with GeoJSON latitude, longitude & googleMapsUrl
       const payload = {
         ...form,
+        latitude: locationData.latitude,
+        longitude: locationData.longitude,
+        googleMapsUrl: locationData.googleMapsUrl,
         images: uploadedUrls,
         estimatedTimeMinutes: Number(form.estimatedTimeMinutes),
         workersNeeded: Number(form.workersNeeded),
@@ -105,7 +143,7 @@ const AddPlaceModal = ({ onClose, onCreated }) => {
       <div className="modal modal-large" onClick={(e) => e.stopPropagation()}>
         <h3 className="modal-title">Add Cleaning Place</h3>
         <p className="modal-sub">
-          Register a location that needs cleaning with scheduled requirements.
+          Register a location that needs cleaning with scheduled requirements and map coordinates.
         </p>
 
         {error && (
@@ -128,7 +166,7 @@ const AddPlaceModal = ({ onClose, onCreated }) => {
 
           {/* Address */}
           <div className="form-group">
-            <label className="form-label">Address *</label>
+            <label className="form-label">Address / Location Description *</label>
             <input
               className="modal-input"
               name="address"
@@ -139,16 +177,10 @@ const AddPlaceModal = ({ onClose, onCreated }) => {
             />
           </div>
 
-          {/* Google Maps URL */}
+          {/* Google Maps Location Selector */}
           <div className="form-group">
-            <label className="form-label">Google Maps Location URL (Optional)</label>
-            <input
-              className="modal-input"
-              name="googleMapUrl"
-              placeholder="https://maps.google.com/?q=..."
-              value={form.googleMapUrl}
-              onChange={handleChange}
-            />
+            <label className="form-label">Google Maps Exact Location *</label>
+            <GoogleMapLocationPicker onLocationSelect={handleLocationSelect} />
           </div>
 
           {/* 2-column Grid: Frequency & Custom Date */}
@@ -298,7 +330,7 @@ const AddPlaceModal = ({ onClose, onCreated }) => {
               Cancel
             </button>
             <button type="submit" className="btn-create" disabled={uploading}>
-              {uploading ? uploadProgressText || 'Uploading…' : 'Add Cleaning Place'}
+              {uploading ? uploadProgressText || 'Saving Place…' : 'Add Cleaning Place'}
             </button>
           </div>
         </form>

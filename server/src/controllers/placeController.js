@@ -42,7 +42,9 @@ const createPlace = async (req, res) => {
     const {
       name,
       address,
-      googleMapUrl,
+      latitude,
+      longitude,
+      googleMapsUrl,
       images,
       estimatedTimeMinutes,
       frequency,
@@ -56,6 +58,24 @@ const createPlace = async (req, res) => {
       return res.status(400).json({ message: 'Place name and address are required' });
     }
 
+    const latNum = Number(latitude);
+    const lngNum = Number(longitude);
+
+    if (
+      latitude === undefined ||
+      longitude === undefined ||
+      isNaN(latNum) ||
+      isNaN(lngNum) ||
+      latNum < -90 ||
+      latNum > 90 ||
+      lngNum < -180 ||
+      lngNum > 180
+    ) {
+      return res.status(400).json({
+        message: 'A valid location selection is required (Latitude: -90 to 90, Longitude: -180 to 180)',
+      });
+    }
+
     if (images && images.length > 3) {
       return res.status(400).json({ message: 'A maximum of 3 images can be added' });
     }
@@ -64,10 +84,20 @@ const createPlace = async (req, res) => {
       return res.status(400).json({ message: 'Please provide a custom date for custom frequency' });
     }
 
+    // Standard GeoJSON Point coordinates: [longitude, latitude]
+    const location = {
+      type: 'Point',
+      coordinates: [lngNum, latNum],
+    };
+
+    const finalGoogleMapsUrl =
+      googleMapsUrl || `https://www.google.com/maps?q=${latNum},${lngNum}`;
+
     const place = await Place.create({
       name,
       address,
-      googleMapUrl: googleMapUrl || '',
+      location,
+      googleMapsUrl: finalGoogleMapsUrl,
       images: images || [],
       estimatedTimeMinutes: Number(estimatedTimeMinutes) || 60,
       frequency: frequency || 'daily',
@@ -100,7 +130,21 @@ const updatePlace = async (req, res) => {
       return res.status(400).json({ message: 'A maximum of 3 images can be added' });
     }
 
-    const updated = await Place.findByIdAndUpdate(req.params.id, req.body, {
+    const updateData = { ...req.body };
+
+    if (req.body.latitude !== undefined && req.body.longitude !== undefined) {
+      const lat = Number(req.body.latitude);
+      const lng = Number(req.body.longitude);
+      if (lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+        updateData.location = {
+          type: 'Point',
+          coordinates: [lng, lat],
+        };
+        updateData.googleMapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
+      }
+    }
+
+    const updated = await Place.findByIdAndUpdate(req.params.id, updateData, {
       new: true,
       runValidators: true,
     }).populate('createdBy', 'name email role');
