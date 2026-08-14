@@ -2,11 +2,19 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import API from '../../api/axios';
+import AddPlaceModal from '../../components/AddPlaceModal';
 import '../admin/AdminDashboard.css';
 
 /* ── helpers ──────────────────────────────────────────────────── */
 const initials = (name = '') =>
   name.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2);
+
+const formatFrequency = (freq, customDate) => {
+  if (freq === 'custom' && customDate) {
+    return `Custom: ${new Date(customDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+  }
+  return freq.charAt(0).toUpperCase() + freq.slice(1);
+};
 
 /* ── Stat card ────────────────────────────────────────────────── */
 const StatCard = ({ icon, label, value, color, loading }) => (
@@ -21,7 +29,7 @@ const StatCard = ({ icon, label, value, color, loading }) => (
   </div>
 );
 
-/* ── Add Cleaner Modal (Supervisor cannot change role, locked to Cleaner) ── */
+/* ── Add Cleaner Modal (Supervisor locked to Cleaner role) ─────── */
 const AddCleanerModal = ({ onClose, onCreated }) => {
   const [form, setForm] = useState({ name: '', email: '', password: '', role: 'cleaner' });
   const [loading, setLoading] = useState(false);
@@ -38,7 +46,7 @@ const AddCleanerModal = ({ onClose, onCreated }) => {
         name: form.name,
         email: form.email,
         password: form.password,
-        role: 'cleaner', // Explicitly cleaner
+        role: 'cleaner',
       });
       onCreated(data);
       onClose();
@@ -129,6 +137,108 @@ const AddCleanerModal = ({ onClose, onCreated }) => {
   );
 };
 
+/* ── Place Card Component ─────────────────────────────────────── */
+const PlaceCard = ({ place, onDelete }) => {
+  const [activeImgIndex, setActiveImgIndex] = useState(0);
+
+  return (
+    <div className="place-card">
+      {/* Photo carousel or fallback */}
+      <div className="place-images-slider">
+        {place.images && place.images.length > 0 ? (
+          <>
+            <img
+              src={place.images[activeImgIndex]}
+              alt={place.name}
+              className="place-img-main"
+            />
+            {place.images.length > 1 && (
+              <div className="place-img-badge">
+                {activeImgIndex + 1} / {place.images.length}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveImgIndex((prev) => (prev + 1) % place.images.length);
+                  }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#fff',
+                    marginLeft: 6,
+                    cursor: 'pointer',
+                    fontSize: 11,
+                  }}
+                  title="Next photo"
+                >
+                  ▶
+                </button>
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="place-no-img">
+            <span style={{ fontSize: 32 }}>🏢</span>
+            <span>No images provided</span>
+          </div>
+        )}
+      </div>
+
+      <div className="place-card-body">
+        <h4 className="place-name">{place.name}</h4>
+        <div className="place-address">
+          <span>📍</span>
+          <span>{place.address}</span>
+        </div>
+
+        {/* Tags */}
+        <div className="place-meta-tags">
+          <span className="place-tag time" title="Estimated Time">
+            ⏱️ {place.estimatedTimeMinutes} mins
+          </span>
+          <span className="place-tag frequency" title="Cleaning Frequency">
+            🔄 {formatFrequency(place.frequency, place.customDate)}
+          </span>
+          <span className="place-tag workers" title="Workers Needed">
+            👥 {place.workersNeeded} Worker{place.workersNeeded > 1 ? 's' : ''}
+          </span>
+          <span className="place-tag tod" title="Time of Day">
+            ☀️ {place.timeOfDay.charAt(0).toUpperCase() + place.timeOfDay.slice(1)}
+          </span>
+        </div>
+
+        {place.description && (
+          <p className="place-desc">
+            {place.description}
+          </p>
+        )}
+
+        <div className="place-card-footer">
+          {place.googleMapUrl ? (
+            <a
+              href={place.googleMapUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="map-btn-link"
+            >
+              🗺️ Open in Google Maps
+            </a>
+          ) : (
+            <span style={{ fontSize: 12, color: '#475569' }}>No Map Link</span>
+          )}
+
+          <button
+            className="btn-delete-user"
+            onClick={() => onDelete(place._id)}
+            title="Remove place"
+          >
+            🗑️
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 /* ── Main Supervisor Dashboard ───────────────────────────────── */
 const SupervisorDashboard = () => {
   const { user, logout } = useAuth();
@@ -137,9 +247,12 @@ const SupervisorDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [stats, setStats] = useState(null);
   const [cleaners, setCleaners] = useState([]);
+  const [places, setPlaces] = useState([]);
   const [statsLoading, setStatsLoading] = useState(true);
   const [cleanersLoading, setCleanersLoading] = useState(true);
+  const [placesLoading, setPlacesLoading] = useState(true);
   const [showAddCleaner, setShowAddCleaner] = useState(false);
+  const [showAddPlace, setShowAddPlace] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const closeSidebar = () => setSidebarOpen(false);
@@ -169,10 +282,23 @@ const SupervisorDashboard = () => {
     }
   }, []);
 
+  const fetchPlaces = useCallback(async () => {
+    try {
+      setPlacesLoading(true);
+      const { data } = await API.get('/places');
+      setPlaces(data);
+    } catch {
+      /* ignore */
+    } finally {
+      setPlacesLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     fetchStats();
     fetchCleaners();
-  }, [fetchStats, fetchCleaners]);
+    fetchPlaces();
+  }, [fetchStats, fetchCleaners, fetchPlaces]);
 
   const handleLogout = () => {
     logout();
@@ -190,18 +316,29 @@ const SupervisorDashboard = () => {
     }
   };
 
+  const handleDeletePlace = async (id) => {
+    if (!window.confirm('Are you sure you want to remove this cleaning place?')) return;
+    try {
+      await API.delete(`/places/${id}`);
+      setPlaces((prev) => prev.filter((p) => p._id !== id));
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to remove place');
+    }
+  };
+
   const navItems = [
     { key: 'overview', icon: '📊', label: 'Overview' },
+    { key: 'places',   icon: '📍', label: 'Cleaning Places' },
     { key: 'cleaners', icon: '🧹', label: 'Manage Cleaners' },
     { key: 'tasks',    icon: '✅', label: 'Cleaning Tasks' },
     { key: 'reports',  icon: '📈', label: 'Reports' },
   ];
 
   const statCards = [
+    { icon: '📍', label: 'Cleaning Places',     value: places.length,                  color: 'blue'   },
     { icon: '🧹', label: 'Cleaners Supervised', value: cleaners.length,               color: 'cyan'   },
     { icon: '📋', label: 'Total Tasks',        value: stats?.totalTasks ?? 0,         color: 'amber'  },
     { icon: '✅', label: 'Completed Tasks',    value: stats?.completedTasks ?? 0,     color: 'green' },
-    { icon: '⏳', label: 'Pending Tasks',      value: stats?.pendingTasks ?? 0,       color: 'red'   },
   ];
 
   const now = new Date();
@@ -291,7 +428,7 @@ const SupervisorDashboard = () => {
                   <div className="welcome-greeting" style={{ color: '#06b6d4' }}>{greeting}</div>
                   <div className="welcome-title">Supervisor {user?.name?.split(' ')[0] || ''} 🧑‍💼</div>
                   <div className="welcome-sub">
-                    Monitor cleaning tasks and manage your cleaner team members.
+                    Manage cleaning places, schedule operations, and oversee your cleaners.
                   </div>
                 </div>
               </div>
@@ -299,68 +436,61 @@ const SupervisorDashboard = () => {
               {/* Stat cards */}
               <div className="stats-grid">
                 {statCards.map((s) => (
-                  <StatCard key={s.label} {...s} loading={statsLoading} />
+                  <StatCard key={s.label} {...s} loading={statsLoading || placesLoading} />
                 ))}
               </div>
 
               {/* Bottom grid */}
               <div className="dashboard-grid">
-                {/* Active Cleaners */}
+                {/* Recent Cleaning Places */}
                 <div className="panel">
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                    <h3 className="section-heading" style={{ margin: 0 }}><span />Your Cleaners</h3>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, gap: 10 }}>
+                    <h3 className="section-heading" style={{ margin: 0 }}><span />Cleaning Places</h3>
                     <button
                       className="btn-create"
-                      onClick={() => setShowAddCleaner(true)}
-                      id="supervisor-add-cleaner-quick-btn"
+                      onClick={() => setShowAddPlace(true)}
+                      id="supervisor-add-place-quick-btn"
                     >
-                      + Add Cleaner
+                      + Add Place
                     </button>
                   </div>
 
-                  {cleanersLoading ? (
+                  {placesLoading ? (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                       {[1, 2, 3].map((i) => (
                         <div key={i} className="skeleton" style={{ height: 48 }} />
                       ))}
                     </div>
-                  ) : cleaners.length === 0 ? (
+                  ) : places.length === 0 ? (
                     <div className="empty-state">
-                      <div className="empty-state-icon">🧹</div>
-                      No cleaners assigned yet. Click <strong>+ Add Cleaner</strong> to onboard staff.
+                      <div className="empty-state-icon">📍</div>
+                      No cleaning places added yet. Click <strong>+ Add Place</strong> to register locations.
                     </div>
                   ) : (
-                    <table className="users-table">
-                      <thead>
-                        <tr>
-                          <th>Cleaner</th>
-                          <th>Status</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {cleaners.slice(0, 5).map((u) => (
-                          <tr key={u._id}>
-                            <td>
-                              <div className="user-name-cell">
-                                <div
-                                  className="user-mini-avatar"
-                                  style={{ background: 'linear-gradient(135deg, #10b981, #06b6d4)' }}
-                                >
-                                  {initials(u.name)}
-                                </div>
-                                <div className="user-info">
-                                  <div className="user-name-text">{u.name}</div>
-                                  <div className="user-email-text">{u.email}</div>
-                                </div>
-                              </div>
-                            </td>
-                            <td>
-                              <span className="role-chip chip-cleaner">Cleaner</span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                      {places.slice(0, 3).map((p) => (
+                        <div
+                          key={p._id}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '12px 14px',
+                            background: 'rgba(30, 41, 59, 0.4)',
+                            borderRadius: 12,
+                            border: '1px solid rgba(255, 255, 255, 0.05)',
+                          }}
+                        >
+                          <div>
+                            <div style={{ fontWeight: 600, color: '#f1f5f9', fontSize: 14 }}>{p.name}</div>
+                            <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>{p.address}</div>
+                          </div>
+                          <span className="place-tag frequency" style={{ margin: 0 }}>
+                            {formatFrequency(p.frequency, p.customDate)}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </div>
 
@@ -369,10 +499,10 @@ const SupervisorDashboard = () => {
                   <h3 className="section-heading"><span />Supervisor Actions</h3>
                   <div className="actions-grid">
                     {[
-                      { icon: '➕', title: 'Add Cleaner', desc: 'Register a new cleaner to your team', action: () => setShowAddCleaner(true) },
-                      { icon: '📋', title: 'Assign Task', desc: 'Create tasks for cleaner team', action: () => setActiveTab('tasks') },
-                      { icon: '👥', title: 'View All Cleaners', desc: 'Browse all cleaners registered', action: () => setActiveTab('cleaners') },
-                      { icon: '📈', title: 'Task Reports', desc: 'Review completed task logs', action: () => setActiveTab('reports') },
+                      { icon: '📍', title: 'Add Place', desc: 'Register a new location requiring cleaning', action: () => setShowAddPlace(true) },
+                      { icon: '🧹', title: 'Add Cleaner', desc: 'Onboard a new cleaner to your team', action: () => setShowAddCleaner(true) },
+                      { icon: '📋', title: 'View Places', desc: 'Browse all cleaning places with details', action: () => setActiveTab('places') },
+                      { icon: '👥', title: 'Cleaner List', desc: 'Manage your cleaners roster', action: () => setActiveTab('cleaners') },
                     ].map((a) => (
                       <div key={a.title} className="action-card" onClick={a.action} role="button" tabIndex={0}>
                         <div className="action-icon">{a.icon}</div>
@@ -386,10 +516,60 @@ const SupervisorDashboard = () => {
             </>
           )}
 
+          {/* ── Cleaning Places Tab ── */}
+          {activeTab === 'places' && (
+            <div className="panel">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, gap: 12, flexWrap: 'wrap' }}>
+                <div>
+                  <h3 className="section-heading" style={{ margin: 0 }}><span />Cleaning Places</h3>
+                  <p style={{ margin: '4px 0 0', fontSize: 13, color: '#64748b' }}>
+                    Locations configured for cleaning schedules, time windows, and worker requirements.
+                  </p>
+                </div>
+                <button
+                  className="btn-create"
+                  onClick={() => setShowAddPlace(true)}
+                  id="supervisor-add-place-tab-btn"
+                >
+                  + Add Place
+                </button>
+              </div>
+
+              {placesLoading ? (
+                <div className="places-grid">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="skeleton" style={{ height: 320, borderRadius: 18 }} />
+                  ))}
+                </div>
+              ) : places.length === 0 ? (
+                <div className="empty-state" style={{ padding: 60 }}>
+                  <div className="empty-state-icon">📍</div>
+                  <div style={{ fontSize: 16, fontWeight: 600, color: '#f1f5f9', marginBottom: 6 }}>No Cleaning Places Yet</div>
+                  <p style={{ color: '#64748b', maxWidth: 360, margin: '0 auto 18px' }}>
+                    Add locations needing cleaning including photos, cleaning times, frequency, and required worker count.
+                  </p>
+                  <button className="btn-create" onClick={() => setShowAddPlace(true)}>
+                    + Add First Place
+                  </button>
+                </div>
+              ) : (
+                <div className="places-grid">
+                  {places.map((place) => (
+                    <PlaceCard
+                      key={place._id}
+                      place={place}
+                      onDelete={handleDeletePlace}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* ── Manage Cleaners Tab ── */}
           {activeTab === 'cleaners' && (
             <div className="panel">
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, gap: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, gap: 12, flexWrap: 'wrap' }}>
                 <div>
                   <h3 className="section-heading" style={{ margin: 0 }}><span />Cleaner Team</h3>
                   <p style={{ margin: '4px 0 0', fontSize: 13, color: '#64748b' }}>
@@ -490,6 +670,16 @@ const SupervisorDashboard = () => {
           onCreated={(newCleaner) => {
             setCleaners((prev) => [newCleaner, ...prev]);
             fetchStats();
+          }}
+        />
+      )}
+
+      {/* Add Cleaning Place Modal */}
+      {showAddPlace && (
+        <AddPlaceModal
+          onClose={() => setShowAddPlace(false)}
+          onCreated={(newPlace) => {
+            setPlaces((prev) => [newPlace, ...prev]);
           }}
         />
       )}
