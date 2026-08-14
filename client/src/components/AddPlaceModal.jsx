@@ -247,12 +247,17 @@ const AddPlaceModal = ({ onClose, onCreated }) => {
                 onChange={handleFileSelect}
                 disabled={selectedFiles.length >= 3 || uploading}
               />
-              <span style={{ fontSize: 24, display: 'block', marginBottom: 4 }}>☁️</span>
-              <span style={{ fontSize: 13, color: '#94a3b8' }}>
+              <div className="upload-icon-wrapper">
+                ☁️
+              </div>
+              <div style={{ fontSize: 13.5, fontWeight: 600, color: '#f1f5f9', marginBottom: 2 }}>
                 {selectedFiles.length >= 3
-                  ? 'Maximum 3 images selected'
-                  : 'Click to select images (up to 3, saved to cloud)'}
-              </span>
+                  ? 'Maximum 3 images reached'
+                  : 'Click to browse images'}
+              </div>
+              <div style={{ fontSize: 12, color: '#64748b' }}>
+                Up to 3 images (PNG, JPG, WEBP) • Uploads to cloud
+              </div>
             </label>
 
             {previews.length > 0 && (
