@@ -1,0 +1,17 @@
+{
+  "name": "nclean-cleaning-tracker",
+  "version": "1.0.0",
+  "description": "N-CLEAN - Full-stack MERN Cleaning Tracker",
+  "scripts": {
+    "server": "npm run dev --prefix server",
+    "client": "npm run dev --prefix client",
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "install:all": "npm install --prefix server && npm install --prefix client"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "keywords": ["mern", "cleaning-tracker"],
+  "author": "",
+  "license": "ISC"
+}
