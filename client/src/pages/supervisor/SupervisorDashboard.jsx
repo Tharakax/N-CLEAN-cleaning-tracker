@@ -138,9 +138,10 @@ const AddCleanerModal = ({ onClose, onCreated }) => {
 };
 
 import AssignCleanerModal from '../../components/AssignCleanerModal';
+import EditPlaceModal from '../../components/EditPlaceModal';
 
 /* ── Place Card Component ─────────────────────────────────────── */
-const PlaceCard = ({ place, onDelete, onAssign }) => {
+const PlaceCard = ({ place, onDelete, onAssign, onEdit }) => {
   const [activeImgIndex, setActiveImgIndex] = useState(0);
   const assigned = place.assignedCleaners || [];
 
@@ -187,8 +188,30 @@ const PlaceCard = ({ place, onDelete, onAssign }) => {
       </div>
 
       <div className="place-card-body">
-        <h4 className="place-name">{place.name}</h4>
-        <div className="place-address">
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
+          <h4 className="place-name" style={{ margin: 0, flex: 1 }}>{place.name}</h4>
+          <button
+            onClick={() => onEdit(place)}
+            style={{
+              background: 'rgba(255, 255, 255, 0.08)',
+              border: '1px solid rgba(255, 255, 255, 0.15)',
+              borderRadius: 6,
+              color: '#cbd5e1',
+              padding: '4px 8px',
+              fontSize: 12,
+              fontWeight: 600,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 4,
+              transition: 'background 0.15s',
+            }}
+            title="Edit Place Details"
+          >
+            ✏️ Edit
+          </button>
+        </div>
+        <div className="place-address" style={{ marginTop: 4 }}>
           <span>📍</span>
           <span>{place.address}</span>
         </div>
@@ -363,6 +386,7 @@ const SupervisorDashboard = () => {
   const [showAddCleaner, setShowAddCleaner] = useState(false);
   const [showAddPlace, setShowAddPlace] = useState(false);
   const [assigningPlace, setAssigningPlace] = useState(null);
+  const [editingPlace, setEditingPlace] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const closeSidebar = () => setSidebarOpen(false);
@@ -437,6 +461,12 @@ const SupervisorDashboard = () => {
   };
 
   const handlePlaceAssigned = (updatedPlace) => {
+    setPlaces((prev) =>
+      prev.map((p) => (p._id === updatedPlace._id ? updatedPlace : p))
+    );
+  };
+
+  const handlePlaceUpdated = (updatedPlace) => {
     setPlaces((prev) =>
       prev.map((p) => (p._id === updatedPlace._id ? updatedPlace : p))
     );
@@ -676,6 +706,7 @@ const SupervisorDashboard = () => {
                       place={place}
                       onDelete={handleDeletePlace}
                       onAssign={(p) => setAssigningPlace(p)}
+                      onEdit={(p) => setEditingPlace(p)}
                     />
                   ))}
                 </div>
@@ -807,6 +838,15 @@ const SupervisorDashboard = () => {
           place={assigningPlace}
           onClose={() => setAssigningPlace(null)}
           onAssigned={handlePlaceAssigned}
+        />
+      )}
+
+      {/* Edit Cleaning Place Modal */}
+      {editingPlace && (
+        <EditPlaceModal
+          place={editingPlace}
+          onClose={() => setEditingPlace(null)}
+          onUpdated={handlePlaceUpdated}
         />
       )}
     </div>

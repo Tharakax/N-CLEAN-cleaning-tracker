@@ -89,6 +89,15 @@ const placeSchema = new mongoose.Schema(
         ref: 'User',
       },
     ],
+    cleaningStatus: {
+      type: String,
+      enum: ['pending', 'in-progress', 'completed'],
+      default: 'pending',
+    },
+    lastCleanedAt: {
+      type: Date,
+      default: null,
+    },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',

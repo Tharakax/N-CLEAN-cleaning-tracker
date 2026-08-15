@@ -211,6 +211,70 @@ const deletePlace = async (req, res) => {
   }
 };
 
+/**
+ * @desc  Get cleaning places assigned to logged in cleaner
+ * @route GET /api/places/my-tasks
+ * @access Private/Cleaner
+ */
+const getCleanerPlaces = async (req, res) => {
+  try {
+    const places = await Place.find({
+      assignedCleaners: req.user._id,
+    })
+      .populate('createdBy', 'name email role')
+      .populate('assignedCleaners', 'name email role')
+      .sort({ updatedAt: -1 });
+
+    res.json(places);
+  } catch (error) {
+    console.error('Error fetching cleaner tasks:', error);
+    res.status(500).json({ message: 'Failed to fetch assigned cleaning tasks' });
+  }
+};
+
+/**
+ * @desc  Update status of a cleaning place by cleaner/supervisor/admin
+ * @route PATCH /api/places/:id/status
+ * @access Private
+ */
+const updatePlaceCleaningStatus = async (req, res) => {
+  try {
+    const { status } = req.body;
+    const allowedStatuses = ['pending', 'in-progress', 'completed'];
+    if (!allowedStatuses.includes(status)) {
+      return res.status(400).json({ message: 'Invalid cleaning status' });
+    }
+
+    const place = await Place.findById(req.params.id);
+    if (!place) return res.status(404).json({ message: 'Place not found' });
+
+    // If cleaner, verify they are assigned
+    if (req.user.role === 'cleaner') {
+      const isAssigned = place.assignedCleaners.some(
+        (id) => id.toString() === req.user._id.toString()
+      );
+      if (!isAssigned) {
+        return res.status(403).json({ message: 'You are not assigned to this cleaning place' });
+      }
+    }
+
+    place.cleaningStatus = status;
+    if (status === 'completed') {
+      place.lastCleanedAt = new Date();
+    }
+    await place.save();
+
+    const populated = await Place.findById(place._id)
+      .populate('createdBy', 'name email role')
+      .populate('assignedCleaners', 'name email role');
+
+    res.json(populated);
+  } catch (error) {
+    console.error('Error updating cleaning status:', error);
+    res.status(500).json({ message: 'Failed to update cleaning status' });
+  }
+};
+
 module.exports = {
   getPlaces,
   getPlaceById,
@@ -218,4 +282,6 @@ module.exports = {
   updatePlace,
   assignCleanersToPlace,
   deletePlace,
+  getCleanerPlaces,
+  updatePlaceCleaningStatus,
 };

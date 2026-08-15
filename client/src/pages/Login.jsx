@@ -148,9 +148,70 @@ const Login = () => {
             </button>
           </form>
 
-          <div className="demo-hint">
-            <strong>Admin demo:</strong> admin@gmail.com / admin123<br />
-            Your role (Admin · Supervisor · Cleaner) is automatically detected.
+          <div style={{ marginTop: 24, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <span style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', color: '#64748b' }}>
+              Quick 1-Click Role Login:
+            </span>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+              <button
+                type="button"
+                onClick={() => setForm({ email: 'kasun.cleaner@gmail.com', password: 'cleaner123' })}
+                style={{
+                  padding: '8px 10px',
+                  background: 'rgba(16, 185, 129, 0.12)',
+                  border: '1px solid rgba(16, 185, 129, 0.25)',
+                  borderRadius: 8,
+                  color: '#34d399',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  textAlign: 'center',
+                }}
+              >
+                🧹 Cleaner
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setForm({ email: 'admin@gmail.com', password: 'admin123' })}
+                style={{
+                  padding: '8px 10px',
+                  background: 'rgba(59, 130, 246, 0.12)',
+                  border: '1px solid rgba(59, 130, 246, 0.25)',
+                  borderRadius: 8,
+                  color: '#60a5fa',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  textAlign: 'center',
+                }}
+              >
+                👑 Admin
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setForm({ email: 'nimali.cleaner@gmail.com', password: 'cleaner123' })}
+                style={{
+                  padding: '8px 10px',
+                  background: 'rgba(6, 182, 212, 0.12)',
+                  border: '1px solid rgba(6, 182, 212, 0.25)',
+                  borderRadius: 8,
+                  color: '#22d3ee',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  textAlign: 'center',
+                }}
+              >
+                🧹 Cleaner 2
+              </button>
+            </div>
+          </div>
+
+          <div className="demo-hint" style={{ marginTop: 16 }}>
+            <strong>Cleaner Credentials:</strong> kasun.cleaner@gmail.com / cleaner123<br />
+            <strong>Admin Credentials:</strong> admin@gmail.com / admin123
           </div>
         </div>
       </div>

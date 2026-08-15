@@ -7,8 +7,12 @@ const {
   updatePlace,
   assignCleanersToPlace,
   deletePlace,
+  getCleanerPlaces,
+  updatePlaceCleaningStatus,
 } = require('../controllers/placeController');
 const { protect, adminOrSupervisor } = require('../middleware/authMiddleware');
+
+router.get('/my-tasks', protect, getCleanerPlaces);
 
 router
   .route('/')
@@ -24,5 +28,9 @@ router
 router
   .route('/:id/assign')
   .put(protect, adminOrSupervisor, assignCleanersToPlace);
+
+router
+  .route('/:id/status')
+  .patch(protect, updatePlaceCleaningStatus);
 
 module.exports = router;
