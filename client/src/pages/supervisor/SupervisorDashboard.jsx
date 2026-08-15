@@ -137,9 +137,12 @@ const AddCleanerModal = ({ onClose, onCreated }) => {
   );
 };
 
+import AssignCleanerModal from '../../components/AssignCleanerModal';
+
 /* ── Place Card Component ─────────────────────────────────────── */
-const PlaceCard = ({ place, onDelete }) => {
+const PlaceCard = ({ place, onDelete, onAssign }) => {
   const [activeImgIndex, setActiveImgIndex] = useState(0);
+  const assigned = place.assignedCleaners || [];
 
   return (
     <div className="place-card">
@@ -212,6 +215,108 @@ const PlaceCard = ({ place, onDelete }) => {
           </p>
         )}
 
+        {/* Assigned Cleaners Section */}
+        <div
+          style={{
+            margin: '10px 0 14px',
+            padding: '10px 12px',
+            background: 'rgba(15, 23, 42, 0.6)',
+            borderRadius: 10,
+            border: '1px solid rgba(255, 255, 255, 0.06)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+            <span style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#94a3b8' }}>
+              Assigned Cleaners ({assigned.length})
+            </span>
+            <button
+              onClick={() => onAssign(place)}
+              style={{
+                background: 'rgba(59, 130, 246, 0.12)',
+                border: '1px solid rgba(59, 130, 246, 0.25)',
+                color: '#60a5fa',
+                fontSize: 11.5,
+                fontWeight: 600,
+                padding: '3px 8px',
+                borderRadius: 6,
+                cursor: 'pointer',
+                fontFamily: 'Inter, sans-serif',
+                transition: 'background 0.15s',
+              }}
+              title="Assign cleaners to place"
+            >
+              ⚙️ Manage
+            </button>
+          </div>
+
+          {assigned.length === 0 ? (
+            <div style={{ fontSize: 12, color: '#f59e0b', display: 'flex', alignItems: 'center', gap: 5 }}>
+              <span>⚠️</span> <span>No cleaners assigned yet</span>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {assigned.map((c) => {
+                const cleanerName = typeof c === 'object' ? c.name : 'Cleaner';
+                return (
+                  <span
+                    key={typeof c === 'object' ? c._id : c}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      fontSize: 11.5,
+                      fontWeight: 600,
+                      background: 'rgba(16, 185, 129, 0.12)',
+                      border: '1px solid rgba(16, 185, 129, 0.25)',
+                      color: '#34d399',
+                      padding: '2px 8px',
+                      borderRadius: 100,
+                    }}
+                  >
+                    <span>🧹</span> {cleanerName}
+                  </span>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Action Button: Assign Cleaning Place */}
+        <button
+          className="btn-assign-place"
+          onClick={() => onAssign(place)}
+          style={{
+            width: '100%',
+            marginBottom: 12,
+            padding: '9px 14px',
+            background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.15))',
+            border: '1px solid rgba(59, 130, 246, 0.35)',
+            borderRadius: 8,
+            color: '#93c5fd',
+            fontSize: 13,
+            fontWeight: 600,
+            cursor: 'pointer',
+            fontFamily: 'Inter, sans-serif',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 6,
+            transition: 'all 0.2s',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'linear-gradient(135deg, rgba(59, 130, 246, 0.35), rgba(139, 92, 246, 0.25))';
+            e.currentTarget.style.borderColor = 'rgba(59, 130, 246, 0.6)';
+            e.currentTarget.style.color = '#fff';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.15))';
+            e.currentTarget.style.borderColor = 'rgba(59, 130, 246, 0.35)';
+            e.currentTarget.style.color = '#93c5fd';
+          }}
+        >
+          <span>👤+</span> Assign Cleaning Place
+        </button>
+
         <div className="place-card-footer">
           {place.googleMapsUrl || place.googleMapUrl || (place.location?.coordinates && `https://www.google.com/maps?q=${place.location.coordinates[1]},${place.location.coordinates[0]}`) ? (
             <a
@@ -257,6 +362,7 @@ const SupervisorDashboard = () => {
   const [placesLoading, setPlacesLoading] = useState(true);
   const [showAddCleaner, setShowAddCleaner] = useState(false);
   const [showAddPlace, setShowAddPlace] = useState(false);
+  const [assigningPlace, setAssigningPlace] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const closeSidebar = () => setSidebarOpen(false);
@@ -328,6 +434,12 @@ const SupervisorDashboard = () => {
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to remove place');
     }
+  };
+
+  const handlePlaceAssigned = (updatedPlace) => {
+    setPlaces((prev) =>
+      prev.map((p) => (p._id === updatedPlace._id ? updatedPlace : p))
+    );
   };
 
   const navItems = [
@@ -563,6 +675,7 @@ const SupervisorDashboard = () => {
                       key={place._id}
                       place={place}
                       onDelete={handleDeletePlace}
+                      onAssign={(p) => setAssigningPlace(p)}
                     />
                   ))}
                 </div>
@@ -685,6 +798,15 @@ const SupervisorDashboard = () => {
           onCreated={(newPlace) => {
             setPlaces((prev) => [newPlace, ...prev]);
           }}
+        />
+      )}
+
+      {/* Assign Cleaner Modal */}
+      {assigningPlace && (
+        <AssignCleanerModal
+          place={assigningPlace}
+          onClose={() => setAssigningPlace(null)}
+          onAssigned={handlePlaceAssigned}
         />
       )}
     </div>

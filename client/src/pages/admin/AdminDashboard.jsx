@@ -4,6 +4,9 @@ import { useAuth } from '../../context/AuthContext';
 import API from '../../api/axios';
 import './AdminDashboard.css';
 
+import AddPlaceModal from '../../components/AddPlaceModal';
+import AssignCleanerModal from '../../components/AssignCleanerModal';
+
 /* ── helpers ──────────────────────────────────────────────────── */
 const initials = (name = '') =>
   name.split(' ').map((w) => w[0]).join('').toUpperCase().slice(0, 2);
@@ -11,6 +14,221 @@ const initials = (name = '') =>
 const roleChip = (role) => {
   const map = { admin: 'chip-admin', supervisor: 'chip-supervisor', cleaner: 'chip-cleaner' };
   return <span className={`role-chip ${map[role] || ''}`}>{role}</span>;
+};
+
+const formatFrequency = (freq, customDate) => {
+  if (freq === 'custom' && customDate) {
+    return `Custom: ${new Date(customDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+  }
+  return (freq || 'daily').charAt(0).toUpperCase() + (freq || 'daily').slice(1);
+};
+
+/* ── Place Card Component (Admin) ─────────────────────────────── */
+const AdminPlaceCard = ({ place, onDelete, onAssign }) => {
+  const [activeImgIndex, setActiveImgIndex] = useState(0);
+  const assigned = place.assignedCleaners || [];
+
+  return (
+    <div className="place-card">
+      <div className="place-images-slider">
+        {place.images && place.images.length > 0 ? (
+          <>
+            <img
+              src={place.images[activeImgIndex]}
+              alt={place.name}
+              className="place-img-main"
+            />
+            {place.images.length > 1 && (
+              <div className="place-img-badge">
+                {activeImgIndex + 1} / {place.images.length}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveImgIndex((prev) => (prev + 1) % place.images.length);
+                  }}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#fff',
+                    marginLeft: 6,
+                    cursor: 'pointer',
+                    fontSize: 11,
+                  }}
+                  title="Next photo"
+                >
+                  ▶
+                </button>
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="place-no-img">
+            <span style={{ fontSize: 32 }}>🏢</span>
+            <span>No images provided</span>
+          </div>
+        )}
+      </div>
+
+      <div className="place-card-body">
+        <h4 className="place-name">{place.name}</h4>
+        <div className="place-address">
+          <span>📍</span>
+          <span>{place.address}</span>
+        </div>
+
+        {/* Tags */}
+        <div className="place-meta-tags">
+          <span className="place-tag time" title="Estimated Time">
+            ⏱️ {place.estimatedTimeMinutes} mins
+          </span>
+          <span className="place-tag frequency" title="Cleaning Frequency">
+            🔄 {formatFrequency(place.frequency, place.customDate)}
+          </span>
+          <span className="place-tag workers" title="Workers Needed">
+            👥 {place.workersNeeded} Worker{place.workersNeeded > 1 ? 's' : ''}
+          </span>
+          <span className="place-tag tod" title="Time of Day">
+            ☀️ {(place.timeOfDay || 'anytime').charAt(0).toUpperCase() + (place.timeOfDay || 'anytime').slice(1)}
+          </span>
+        </div>
+
+        {place.description && (
+          <p className="place-desc">
+            {place.description}
+          </p>
+        )}
+
+        {/* Assigned Cleaners Section */}
+        <div
+          style={{
+            margin: '10px 0 14px',
+            padding: '10px 12px',
+            background: 'rgba(15, 23, 42, 0.6)',
+            borderRadius: 10,
+            border: '1px solid rgba(255, 255, 255, 0.06)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+            <span style={{ fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', color: '#94a3b8' }}>
+              Assigned Cleaners ({assigned.length})
+            </span>
+            <button
+              onClick={() => onAssign(place)}
+              style={{
+                background: 'rgba(59, 130, 246, 0.12)',
+                border: '1px solid rgba(59, 130, 246, 0.25)',
+                color: '#60a5fa',
+                fontSize: 11.5,
+                fontWeight: 600,
+                padding: '3px 8px',
+                borderRadius: 6,
+                cursor: 'pointer',
+                fontFamily: 'Inter, sans-serif',
+                transition: 'background 0.15s',
+              }}
+              title="Assign cleaners to place"
+            >
+              ⚙️ Manage
+            </button>
+          </div>
+
+          {assigned.length === 0 ? (
+            <div style={{ fontSize: 12, color: '#f59e0b', display: 'flex', alignItems: 'center', gap: 5 }}>
+              <span>⚠️</span> <span>No cleaners assigned yet</span>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {assigned.map((c) => {
+                const cleanerName = typeof c === 'object' ? c.name : 'Cleaner';
+                return (
+                  <span
+                    key={typeof c === 'object' ? c._id : c}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 4,
+                      fontSize: 11.5,
+                      fontWeight: 600,
+                      background: 'rgba(16, 185, 129, 0.12)',
+                      border: '1px solid rgba(16, 185, 129, 0.25)',
+                      color: '#34d399',
+                      padding: '2px 8px',
+                      borderRadius: 100,
+                    }}
+                  >
+                    <span>🧹</span> {cleanerName}
+                  </span>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Action Button: Assign Cleaning Place */}
+        <button
+          className="btn-assign-place"
+          onClick={() => onAssign(place)}
+          style={{
+            width: '100%',
+            marginBottom: 12,
+            padding: '9px 14px',
+            background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.15))',
+            border: '1px solid rgba(59, 130, 246, 0.35)',
+            borderRadius: 8,
+            color: '#93c5fd',
+            fontSize: 13,
+            fontWeight: 600,
+            cursor: 'pointer',
+            fontFamily: 'Inter, sans-serif',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 6,
+            transition: 'all 0.2s',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = 'linear-gradient(135deg, rgba(59, 130, 246, 0.35), rgba(139, 92, 246, 0.25))';
+            e.currentTarget.style.borderColor = 'rgba(59, 130, 246, 0.6)';
+            e.currentTarget.style.color = '#fff';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = 'linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(139, 92, 246, 0.15))';
+            e.currentTarget.style.borderColor = 'rgba(59, 130, 246, 0.35)';
+            e.currentTarget.style.color = '#93c5fd';
+          }}
+        >
+          <span>👤+</span> Assign Cleaning Place
+        </button>
+
+        <div className="place-card-footer">
+          {place.googleMapsUrl || place.googleMapUrl || (place.location?.coordinates && `https://www.google.com/maps?q=${place.location.coordinates[1]},${place.location.coordinates[0]}`) ? (
+            <a
+              href={
+                place.googleMapsUrl ||
+                place.googleMapUrl ||
+                `https://www.google.com/maps?q=${place.location.coordinates[1]},${place.location.coordinates[0]}`
+              }
+              target="_blank"
+              rel="noopener noreferrer"
+              className="map-btn-link"
+            >
+              🗺️ Open in Google Maps
+            </a>
+          ) : (
+            <span style={{ fontSize: 12, color: '#475569' }}>No Map Link</span>
+          )}
+
+          <button
+            className="btn-delete-user"
+            onClick={() => onDelete(place._id)}
+            title="Remove place"
+          >
+            🗑️
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 };
 
 /* ── Stat card ────────────────────────────────────────────────── */
@@ -124,9 +342,13 @@ const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [stats, setStats] = useState(null);
   const [users, setUsers] = useState([]);
+  const [places, setPlaces] = useState([]);
   const [statsLoading, setStatsLoading] = useState(true);
   const [usersLoading, setUsersLoading] = useState(true);
+  const [placesLoading, setPlacesLoading] = useState(true);
   const [showAddUser, setShowAddUser] = useState(false);
+  const [showAddPlace, setShowAddPlace] = useState(false);
+  const [assigningPlace, setAssigningPlace] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const closeSidebar = () => setSidebarOpen(false);
@@ -156,10 +378,23 @@ const AdminDashboard = () => {
     }
   }, []);
 
+  const fetchPlaces = useCallback(async () => {
+    try {
+      setPlacesLoading(true);
+      const { data } = await API.get('/places');
+      setPlaces(data);
+    } catch {
+      /* silently fail */
+    } finally {
+      setPlacesLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     fetchStats();
     fetchUsers();
-  }, [fetchStats, fetchUsers]);
+    fetchPlaces();
+  }, [fetchStats, fetchUsers, fetchPlaces]);
 
   const handleLogout = () => {
     logout();
@@ -176,8 +411,25 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleDeletePlace = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this cleaning place?')) return;
+    try {
+      await API.delete(`/places/${id}`);
+      setPlaces((prev) => prev.filter((p) => p._id !== id));
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to remove place');
+    }
+  };
+
+  const handlePlaceAssigned = (updatedPlace) => {
+    setPlaces((prev) =>
+      prev.map((p) => (p._id === updatedPlace._id ? updatedPlace : p))
+    );
+  };
+
   const navItems = [
     { key: 'overview', icon: '📊', label: 'Overview' },
+    { key: 'places',   icon: '📍', label: 'Cleaning Places' },
     { key: 'users',    icon: '👥', label: 'User Management' },
     { key: 'tasks',    icon: '✅', label: 'Tasks' },
     { key: 'reports',  icon: '📈', label: 'Reports' },
@@ -185,11 +437,11 @@ const AdminDashboard = () => {
   ];
 
   const statCards = [
-    { icon: '👥', label: 'Total Staff',       value: stats?.totalUsers   ?? 0, color: 'blue'   },
-    { icon: '🧑‍💼', label: 'Supervisors',      value: stats?.supervisors  ?? 0, color: 'purple' },
-    { icon: '🧹', label: 'Cleaners',           value: stats?.cleaners     ?? 0, color: 'cyan'   },
+    { icon: '📍', label: 'Cleaning Places',   value: places.length,       color: 'blue'   },
+    { icon: '👥', label: 'Total Staff',       value: stats?.totalUsers   ?? 0, color: 'purple' },
+    { icon: '🧑‍💼', label: 'Supervisors',      value: stats?.supervisors  ?? 0, color: 'cyan'   },
+    { icon: '🧹', label: 'Cleaners',           value: stats?.cleaners     ?? 0, color: 'green'  },
     { icon: '📋', label: 'Total Tasks',        value: stats?.totalTasks   ?? 0, color: 'amber'  },
-    { icon: '✅', label: 'Completed Tasks',    value: stats?.completedTasks ?? 0, color: 'green' },
     { icon: '⏳', label: 'Pending Tasks',      value: stats?.pendingTasks  ?? 0, color: 'red'   },
   ];
 
@@ -284,7 +536,7 @@ const AdminDashboard = () => {
               {/* Stat cards */}
               <div className="stats-grid">
                 {statCards.map((s) => (
-                  <StatCard key={s.label} {...s} loading={statsLoading} />
+                  <StatCard key={s.label} {...s} loading={statsLoading || placesLoading} />
                 ))}
               </div>
 
@@ -337,10 +589,10 @@ const AdminDashboard = () => {
                   <h3 className="section-heading"><span />Quick Actions</h3>
                   <div className="actions-grid">
                     {[
+                      { icon: '📍', title: 'Add Place', desc: 'Register a cleaning place location', action: () => setShowAddPlace(true) },
                       { icon: '➕', title: 'Add Staff', desc: 'Create a supervisor or cleaner account', action: () => setActiveTab('users') },
+                      { icon: '🗺️', title: 'Manage Places', desc: 'Assign cleaners to cleaning places', action: () => setActiveTab('places') },
                       { icon: '📋', title: 'New Task', desc: 'Assign a cleaning task to staff', action: () => setActiveTab('tasks') },
-                      { icon: '📊', title: 'View Reports', desc: 'Inspect completion metrics', action: () => setActiveTab('reports') },
-                      { icon: '⚙️', title: 'Settings', desc: 'Configure system preferences', action: () => setActiveTab('settings') },
                     ].map((a) => (
                       <div key={a.title} className="action-card" onClick={a.action} role="button" tabIndex={0}>
                         <div className="action-icon">{a.icon}</div>
@@ -352,6 +604,57 @@ const AdminDashboard = () => {
                 </div>
               </div>
             </>
+          )}
+
+          {/* ── Places Tab ── */}
+          {activeTab === 'places' && (
+            <div className="panel">
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, gap: 12, flexWrap: 'wrap' }}>
+                <div>
+                  <h3 className="section-heading" style={{ margin: 0 }}><span />Cleaning Places</h3>
+                  <p style={{ margin: '4px 0 0', fontSize: 13, color: '#64748b' }}>
+                    Manage all facility locations and assign registered cleaners.
+                  </p>
+                </div>
+                <button
+                  className="btn-create"
+                  onClick={() => setShowAddPlace(true)}
+                  id="admin-add-place-tab-btn"
+                >
+                  + Add Place
+                </button>
+              </div>
+
+              {placesLoading ? (
+                <div className="places-grid">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="skeleton" style={{ height: 320, borderRadius: 18 }} />
+                  ))}
+                </div>
+              ) : places.length === 0 ? (
+                <div className="empty-state" style={{ padding: 60 }}>
+                  <div className="empty-state-icon">📍</div>
+                  <div style={{ fontSize: 16, fontWeight: 600, color: '#f1f5f9', marginBottom: 6 }}>No Cleaning Places Yet</div>
+                  <p style={{ color: '#64748b', maxWidth: 360, margin: '0 auto 18px' }}>
+                    Add locations needing cleaning to assign cleaners and track operations.
+                  </p>
+                  <button className="btn-create" onClick={() => setShowAddPlace(true)}>
+                    + Add First Place
+                  </button>
+                </div>
+              ) : (
+                <div className="places-grid">
+                  {places.map((place) => (
+                    <AdminPlaceCard
+                      key={place._id}
+                      place={place}
+                      onDelete={handleDeletePlace}
+                      onAssign={(p) => setAssigningPlace(p)}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
           )}
 
           {/* ── Users Tab ── */}
@@ -447,6 +750,25 @@ const AdminDashboard = () => {
             setUsers((prev) => [newUser, ...prev]);
             fetchStats();
           }}
+        />
+      )}
+
+      {/* Add Place Modal */}
+      {showAddPlace && (
+        <AddPlaceModal
+          onClose={() => setShowAddPlace(false)}
+          onCreated={(newPlace) => {
+            setPlaces((prev) => [newPlace, ...prev]);
+          }}
+        />
+      )}
+
+      {/* Assign Cleaner Modal */}
+      {assigningPlace && (
+        <AssignCleanerModal
+          place={assigningPlace}
+          onClose={() => setAssigningPlace(null)}
+          onAssigned={handlePlaceAssigned}
         />
       )}
     </div>

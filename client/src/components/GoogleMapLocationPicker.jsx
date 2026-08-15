@@ -147,7 +147,10 @@ const GoogleMapLocationPicker = ({
     [onLocationSelect]
   );
 
-  // Hybrid Geocoding & OpenStreetMap Nominatim Search (Zero "Legacy Places API" blocks)
+  // High-accuracy Multi-tier Search:
+  // 1. Google Places Autocomplete & Details (Finds exact shops, offices, businesses, POIs)
+  // 2. Google Geocoder
+  // 3. OpenStreetMap Nominatim with rich addressdetails & POI support
   const performSearch = async (queryText) => {
     if (!queryText || queryText.trim().length < 2) {
       setSearchResults([]);
@@ -158,7 +161,53 @@ const GoogleMapLocationPicker = ({
     setSearching(true);
 
     try {
-      // 1. First attempt Google Geocoder if loaded and enabled
+      // 1. First priority: Google Places Autocomplete Service (Exact businesses, offices, workplaces, shops)
+      if (window.google?.maps?.places?.AutocompleteService) {
+        try {
+          const autoService = new window.google.maps.places.AutocompleteService();
+          const autoResults = await new Promise((resolve) => {
+            autoService.getPlacePredictions(
+              {
+                input: queryText,
+                // Bias slightly towards current map position if set
+                locationBias: position
+                  ? new window.google.maps.LatLng(position.lat, position.lng)
+                  : new window.google.maps.LatLng(defaultCenter.lat, defaultCenter.lng),
+              },
+              (predictions, status) => {
+                if (
+                  status === window.google.maps.places.PlacesServiceStatus.OK &&
+                  predictions &&
+                  predictions.length > 0
+                ) {
+                  resolve(predictions);
+                } else {
+                  resolve(null);
+                }
+              }
+            );
+          });
+
+          if (autoResults && autoResults.length > 0) {
+            setSearchResults(
+              autoResults.map((item) => ({
+                isGooglePlace: true,
+                place_id: item.place_id,
+                display_name: item.description,
+                main_text: item.structured_formatting?.main_text || item.description,
+                secondary_text: item.structured_formatting?.secondary_text || '',
+              }))
+            );
+            setShowDropdown(true);
+            setSearching(false);
+            return;
+          }
+        } catch (e) {
+          console.warn('Google Places Autocomplete failed, trying Geocoder...', e);
+        }
+      }
+
+      // 2. Google Geocoder fallback
       if (window.google?.maps?.Geocoder) {
         const geocoder = new window.google.maps.Geocoder();
         const response = await new Promise((resolve) => {
@@ -185,14 +234,23 @@ const GoogleMapLocationPicker = ({
         }
       }
 
-      // 2. High-accuracy fallback (Nominatim) that works universally without API restrictions
+      // 3. High-accuracy OpenStreetMap Nominatim Search (covers POIs, shops, offices worldwide)
       const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(queryText)}&limit=5`
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+          queryText
+        )}&addressdetails=1&extratags=1&namedetails=1&limit=8`
       );
       const data = await res.json();
 
       if (Array.isArray(data) && data.length > 0) {
-        setSearchResults(data);
+        setSearchResults(
+          data.map((item) => ({
+            ...item,
+            display_name: item.display_name,
+            main_text: item.name || item.display_name.split(',')[0],
+            secondary_text: item.display_name.split(',').slice(1).join(',').trim(),
+          }))
+        );
         setShowDropdown(true);
       } else {
         setSearchResults([]);
@@ -215,10 +273,56 @@ const GoogleMapLocationPicker = ({
 
     searchTimeoutRef.current = setTimeout(() => {
       performSearch(val);
-    }, 350);
+    }, 300);
   };
 
-  const handleSelectSearchResult = (item) => {
+  const handleSelectSearchResult = async (item) => {
+    // If it's a Google Place prediction, resolve details (lat/lng) via PlacesService or Geocoder
+    if (item.isGooglePlace && item.place_id) {
+      try {
+        if (window.google?.maps?.places?.PlacesService && map) {
+          const service = new window.google.maps.places.PlacesService(map);
+          service.getDetails(
+            { placeId: item.place_id, fields: ['geometry', 'formatted_address', 'name'] },
+            (place, status) => {
+              if (
+                status === window.google.maps.places.PlacesServiceStatus.OK &&
+                place?.geometry?.location
+              ) {
+                const lat = place.geometry.location.lat();
+                const lng = place.geometry.location.lng();
+                const newPos = { lat, lng };
+
+                setPosition(newPos);
+                setSearchQuery(item.display_name);
+                setShowDropdown(false);
+                setGeoError('');
+
+                if (map) {
+                  map.panTo(newPos);
+                  map.setZoom(17);
+                }
+
+                notifyParent(lat, lng, place.formatted_address || item.display_name);
+                return;
+              }
+              // Fallback to geocoding if getDetails failed
+              fallbackGeocodePlace(item);
+            }
+          );
+          return;
+        } else {
+          fallbackGeocodePlace(item);
+          return;
+        }
+      } catch (err) {
+        console.error('Error fetching place details:', err);
+        fallbackGeocodePlace(item);
+        return;
+      }
+    }
+
+    // Direct Lat/Lng items (Nominatim / Geocoder)
     const lat = parseFloat(item.lat);
     const lng = parseFloat(item.lon || item.lng);
     const newPos = { lat, lng };
@@ -230,10 +334,35 @@ const GoogleMapLocationPicker = ({
 
     if (map) {
       map.panTo(newPos);
-      map.setZoom(16);
+      map.setZoom(17);
     }
 
     notifyParent(lat, lng, item.display_name);
+  };
+
+  const fallbackGeocodePlace = (item) => {
+    if (window.google?.maps?.Geocoder) {
+      const geocoder = new window.google.maps.Geocoder();
+      geocoder.geocode({ placeId: item.place_id }, (results, status) => {
+        if (status === 'OK' && results && results[0]) {
+          const lat = results[0].geometry.location.lat();
+          const lng = results[0].geometry.location.lng();
+          const newPos = { lat, lng };
+
+          setPosition(newPos);
+          setSearchQuery(item.display_name);
+          setShowDropdown(false);
+          setGeoError('');
+
+          if (map) {
+            map.panTo(newPos);
+            map.setZoom(17);
+          }
+
+          notifyParent(lat, lng, results[0].formatted_address || item.display_name);
+        }
+      });
+    }
   };
 
   // Browser Geolocation
@@ -340,7 +469,7 @@ const GoogleMapLocationPicker = ({
               borderRadius: '10px',
               boxShadow: '0 10px 25px rgba(0, 0, 0, 0.5)',
               zIndex: 1000,
-              maxHeight: '200px',
+              maxHeight: '260px',
               overflowY: 'auto',
             }}
           >
@@ -350,16 +479,14 @@ const GoogleMapLocationPicker = ({
                 onClick={() => handleSelectSearchResult(item)}
                 style={{
                   padding: '10px 14px',
-                  fontSize: '13px',
-                  color: '#e2e8f0',
                   cursor: 'pointer',
                   borderBottom:
                     idx < searchResults.length - 1
                       ? '1px solid rgba(255, 255, 255, 0.05)'
                       : 'none',
                   display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
+                  alignItems: 'flex-start',
+                  gap: '10px',
                 }}
                 onMouseEnter={(e) =>
                   (e.currentTarget.style.background = 'rgba(59, 130, 246, 0.15)')
@@ -368,16 +495,36 @@ const GoogleMapLocationPicker = ({
                   (e.currentTarget.style.background = 'transparent')
                 }
               >
-                <span>📍</span>
-                <span
-                  style={{
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {item.display_name}
+                <span style={{ fontSize: '15px', marginTop: '1px' }}>
+                  {item.isGooglePlace ? '🏢' : '📍'}
                 </span>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', overflow: 'hidden' }}>
+                  <span
+                    style={{
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      color: '#f8fafc',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {item.main_text || item.display_name}
+                  </span>
+                  {item.secondary_text && (
+                    <span
+                      style={{
+                        fontSize: '11.5px',
+                        color: '#94a3b8',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {item.secondary_text}
+                    </span>
+                  )}
+                </div>
               </div>
             ))}
           </div>

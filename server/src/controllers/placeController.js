@@ -9,6 +9,7 @@ const getPlaces = async (req, res) => {
   try {
     const places = await Place.find()
       .populate('createdBy', 'name email role')
+      .populate('assignedCleaners', 'name email role')
       .sort({ createdAt: -1 });
     res.json(places);
   } catch (error) {
@@ -24,7 +25,9 @@ const getPlaces = async (req, res) => {
  */
 const getPlaceById = async (req, res) => {
   try {
-    const place = await Place.findById(req.params.id).populate('createdBy', 'name email role');
+    const place = await Place.findById(req.params.id)
+      .populate('createdBy', 'name email role')
+      .populate('assignedCleaners', 'name email role');
     if (!place) return res.status(404).json({ message: 'Place not found' });
     res.json(place);
   } catch (error) {
@@ -52,6 +55,7 @@ const createPlace = async (req, res) => {
       description,
       workersNeeded,
       timeOfDay,
+      assignedCleaners,
     } = req.body;
 
     if (!name || !address) {
@@ -105,10 +109,14 @@ const createPlace = async (req, res) => {
       description: description || '',
       workersNeeded: Number(workersNeeded) || 1,
       timeOfDay: timeOfDay || 'anytime',
+      assignedCleaners: Array.isArray(assignedCleaners) ? assignedCleaners : [],
       createdBy: req.user._id,
     });
 
-    const populated = await place.populate('createdBy', 'name email role');
+    const populated = await place.populate([
+      { path: 'createdBy', select: 'name email role' },
+      { path: 'assignedCleaners', select: 'name email role' },
+    ]);
     res.status(201).json(populated);
   } catch (error) {
     console.error('Error creating place:', error);
@@ -147,11 +155,42 @@ const updatePlace = async (req, res) => {
     const updated = await Place.findByIdAndUpdate(req.params.id, updateData, {
       new: true,
       runValidators: true,
-    }).populate('createdBy', 'name email role');
+    })
+      .populate('createdBy', 'name email role')
+      .populate('assignedCleaners', 'name email role');
 
     res.json(updated);
   } catch (error) {
     res.status(400).json({ message: error.message || 'Failed to update place' });
+  }
+};
+
+/**
+ * @desc  Assign cleaners to a cleaning place
+ * @route PUT /api/places/:id/assign
+ * @access Private/Admin/Supervisor
+ */
+const assignCleanersToPlace = async (req, res) => {
+  try {
+    const { cleanerIds } = req.body;
+    if (!Array.isArray(cleanerIds)) {
+      return res.status(400).json({ message: 'cleanerIds must be an array of user IDs' });
+    }
+
+    const place = await Place.findById(req.params.id);
+    if (!place) return res.status(404).json({ message: 'Place not found' });
+
+    place.assignedCleaners = cleanerIds;
+    await place.save();
+
+    const populated = await Place.findById(place._id)
+      .populate('createdBy', 'name email role')
+      .populate('assignedCleaners', 'name email role');
+
+    res.json(populated);
+  } catch (error) {
+    console.error('Error assigning cleaners:', error);
+    res.status(500).json({ message: 'Failed to assign cleaners to place' });
   }
 };
 
@@ -177,5 +216,6 @@ module.exports = {
   getPlaceById,
   createPlace,
   updatePlace,
+  assignCleanersToPlace,
   deletePlace,
 };

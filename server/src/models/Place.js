@@ -83,6 +83,12 @@ const placeSchema = new mongoose.Schema(
       required: [true, 'Suitable cleaning time of day is required'],
       default: 'anytime',
     },
+    assignedCleaners: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+      },
+    ],
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',

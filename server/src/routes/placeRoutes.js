@@ -5,6 +5,7 @@ const {
   getPlaceById,
   createPlace,
   updatePlace,
+  assignCleanersToPlace,
   deletePlace,
 } = require('../controllers/placeController');
 const { protect, adminOrSupervisor } = require('../middleware/authMiddleware');
@@ -19,5 +20,9 @@ router
   .get(protect, getPlaceById)
   .put(protect, adminOrSupervisor, updatePlace)
   .delete(protect, adminOrSupervisor, deletePlace);
+
+router
+  .route('/:id/assign')
+  .put(protect, adminOrSupervisor, assignCleanersToPlace);
 
 module.exports = router;
