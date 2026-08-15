@@ -89,6 +89,42 @@ const placeSchema = new mongoose.Schema(
         ref: 'User',
       },
     ],
+    floors: [
+      {
+        floorName: {
+          type: String,
+          required: [true, 'Floor name/label is required'],
+          trim: true,
+        },
+        floorNumber: {
+          type: Number,
+          default: 1,
+        },
+        areas: [
+          {
+            name: {
+              type: String,
+              required: [true, 'Area name is required'],
+              trim: true,
+            },
+            type: {
+              type: String,
+              enum: ['room', 'sauna', 'hall', 'restroom', 'kitchen', 'lobby', 'office', 'corridor', 'other'],
+              default: 'room',
+            },
+            description: {
+              type: String,
+              trim: true,
+              default: '',
+            },
+            estimatedMinutes: {
+              type: Number,
+              default: 15,
+            },
+          },
+        ],
+      },
+    ],
     cleaningStatus: {
       type: String,
       enum: ['pending', 'in-progress', 'completed'],

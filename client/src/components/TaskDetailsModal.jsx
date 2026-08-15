@@ -196,6 +196,80 @@ const TaskDetailsModal = ({ place, onClose, onStatusChange, isUpdating }) => {
             </div>
           </div>
 
+          {/* Floors & Custom Areas Breakdown */}
+          {place.floors && place.floors.length > 0 && (
+            <div style={{ marginBottom: 20 }}>
+              <span style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: '#94a3b8', display: 'block', marginBottom: 8 }}>
+                🏢 Floors & Custom Areas to Clean ({place.floors.length} Floors):
+              </span>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {place.floors.map((fl, fIdx) => (
+                  <div
+                    key={fIdx}
+                    style={{
+                      background: 'rgba(30, 41, 59, 0.6)',
+                      border: '1px solid rgba(255, 255, 255, 0.08)',
+                      borderRadius: 10,
+                      padding: '12px 14px',
+                    }}
+                  >
+                    <div style={{ fontSize: 13.5, fontWeight: 700, color: '#60a5fa', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <span>🏛️</span> {fl.floorName}
+                    </div>
+
+                    {(!fl.areas || fl.areas.length === 0) ? (
+                      <div style={{ fontSize: 12, color: '#64748b', fontStyle: 'italic' }}>
+                        No specific sub-areas listed for this floor.
+                      </div>
+                    ) : (
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 6 }}>
+                        {fl.areas.map((ar, aIdx) => {
+                          const icon =
+                            ar.type === 'sauna'
+                              ? '🧖‍♂️'
+                              : ar.type === 'hall'
+                              ? '🏛️'
+                              : ar.type === 'restroom'
+                              ? '🚻'
+                              : ar.type === 'kitchen'
+                              ? '🍳'
+                              : ar.type === 'office'
+                              ? '💼'
+                              : '🚪';
+                          return (
+                            <div
+                              key={aIdx}
+                              style={{
+                                background: 'rgba(15, 23, 42, 0.6)',
+                                border: '1px solid rgba(255, 255, 255, 0.05)',
+                                borderRadius: 6,
+                                padding: '6px 10px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                fontSize: 12,
+                                color: '#f1f5f9',
+                              }}
+                            >
+                              <span style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5 }}>
+                                <span>{icon}</span> {ar.name}
+                              </span>
+                              {ar.estimatedMinutes && (
+                                <span style={{ fontSize: 11, color: '#94a3b8' }}>
+                                  {ar.estimatedMinutes}m
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Cleaning Instructions / Description */}
           <div style={{ marginBottom: 20 }}>
             <span style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, color: '#94a3b8', display: 'block', marginBottom: 6 }}>

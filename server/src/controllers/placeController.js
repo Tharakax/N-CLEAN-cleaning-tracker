@@ -56,6 +56,7 @@ const createPlace = async (req, res) => {
       workersNeeded,
       timeOfDay,
       assignedCleaners,
+      floors,
     } = req.body;
 
     if (!name || !address) {
@@ -88,6 +89,33 @@ const createPlace = async (req, res) => {
       return res.status(400).json({ message: 'Please provide a custom date for custom frequency' });
     }
 
+    // Validate floor & area uniqueness
+    let formattedFloors = [];
+    if (Array.isArray(floors) && floors.length > 0) {
+      const allAreaNames = new Set();
+      for (const fl of floors) {
+        const floorName = (fl.floorName || '').trim();
+        if (!floorName) {
+          return res.status(400).json({ message: 'Each floor must have a customized name/label' });
+        }
+        const areasList = Array.isArray(fl.areas) ? fl.areas : [];
+        for (const ar of areasList) {
+          const areaName = (ar.name || '').trim();
+          if (!areaName) {
+            return res.status(400).json({ message: `Every area on ${floorName} must have a name` });
+          }
+          const lowerName = `${floorName} - ${areaName}`.toLowerCase();
+          if (allAreaNames.has(lowerName)) {
+            return res.status(400).json({
+              message: `Area "${areaName}" on "${floorName}" is duplicated. All areas should be uniquely named.`,
+            });
+          }
+          allAreaNames.add(lowerName);
+        }
+      }
+      formattedFloors = floors;
+    }
+
     // Standard GeoJSON Point coordinates: [longitude, latitude]
     const location = {
       type: 'Point',
@@ -110,6 +138,7 @@ const createPlace = async (req, res) => {
       workersNeeded: Number(workersNeeded) || 1,
       timeOfDay: timeOfDay || 'anytime',
       assignedCleaners: Array.isArray(assignedCleaners) ? assignedCleaners : [],
+      floors: formattedFloors,
       createdBy: req.user._id,
     });
 
@@ -139,6 +168,31 @@ const updatePlace = async (req, res) => {
     }
 
     const updateData = { ...req.body };
+
+    if (Array.isArray(req.body.floors)) {
+      const allAreaNames = new Set();
+      for (const fl of req.body.floors) {
+        const floorName = (fl.floorName || '').trim();
+        if (!floorName) {
+          return res.status(400).json({ message: 'Each floor must have a customized name/label' });
+        }
+        const areasList = Array.isArray(fl.areas) ? fl.areas : [];
+        for (const ar of areasList) {
+          const areaName = (ar.name || '').trim();
+          if (!areaName) {
+            return res.status(400).json({ message: `Every area on ${floorName} must have a name` });
+          }
+          const lowerName = `${floorName} - ${areaName}`.toLowerCase();
+          if (allAreaNames.has(lowerName)) {
+            return res.status(400).json({
+              message: `Area "${areaName}" on "${floorName}" is duplicated. All areas should be uniquely named.`,
+            });
+          }
+          allAreaNames.add(lowerName);
+        }
+      }
+      updateData.floors = req.body.floors;
+    }
 
     if (req.body.latitude !== undefined && req.body.longitude !== undefined) {
       const lat = Number(req.body.latitude);

@@ -218,6 +218,15 @@ const PlaceCard = ({ place, onDelete, onAssign, onEdit }) => {
 
         {/* Tags */}
         <div className="place-meta-tags">
+          {place.floors && place.floors.length > 0 && (
+            <span
+              className="place-tag"
+              style={{ background: 'rgba(59, 130, 246, 0.15)', color: '#93c5fd', borderColor: 'rgba(59, 130, 246, 0.3)' }}
+              title="Configured Floors and Areas"
+            >
+              🏢 {place.floors.length} Floor{place.floors.length > 1 ? 's' : ''} ({place.floors.reduce((sum, f) => sum + (f.areas?.length || 0), 0)} Areas)
+            </span>
+          )}
           <span className="place-tag time" title="Estimated Time">
             ⏱️ {place.estimatedTimeMinutes} mins
           </span>

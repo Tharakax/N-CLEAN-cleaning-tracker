@@ -2,6 +2,7 @@ import { useState } from 'react';
 import API from '../api/axios';
 import MediaUpload from '../utils/mediaUpload';
 import GoogleMapLocationPicker from './GoogleMapLocationPicker';
+import FloorAreaBuilder from './FloorAreaBuilder';
 
 const AddPlaceModal = ({ onClose, onCreated }) => {
   const [form, setForm] = useState({
@@ -14,6 +15,8 @@ const AddPlaceModal = ({ onClose, onCreated }) => {
     workersNeeded: 1,
     timeOfDay: 'anytime',
   });
+
+  const [floors, setFloors] = useState([]);
 
   const [locationData, setLocationData] = useState({
     latitude: null,
@@ -97,6 +100,29 @@ const AddPlaceModal = ({ onClose, onCreated }) => {
       return;
     }
 
+    // Floor & Area uniqueness check
+    if (floors.length > 0) {
+      const areaSet = new Set();
+      for (const fl of floors) {
+        if (!fl.floorName || !fl.floorName.trim()) {
+          setError('Please provide a name for each configured floor.');
+          return;
+        }
+        for (const ar of fl.areas || []) {
+          if (!ar.name || !ar.name.trim()) {
+            setError(`Please specify a name for all areas on floor "${fl.floorName}".`);
+            return;
+          }
+          const key = `${fl.floorName.trim()} - ${ar.name.trim()}`.toLowerCase();
+          if (areaSet.has(key)) {
+            setError(`Area "${ar.name}" on floor "${fl.floorName}" is duplicated. All areas must be uniquely named.`);
+            return;
+          }
+          areaSet.add(key);
+        }
+      }
+    }
+
     setUploading(true);
     try {
       // 1. Upload files to Supabase Storage and collect Public URLs
@@ -120,6 +146,7 @@ const AddPlaceModal = ({ onClose, onCreated }) => {
         images: uploadedUrls,
         estimatedTimeMinutes: Number(form.estimatedTimeMinutes),
         workersNeeded: Number(form.workersNeeded),
+        floors: floors,
       };
 
       const { data } = await API.post('/places', payload);
@@ -310,6 +337,15 @@ const AddPlaceModal = ({ onClose, onCreated }) => {
                 ))}
               </div>
             )}
+          </div>
+
+          {/* Customized Floors & Areas Layout (Rooms, Saunas, Halls, etc.) */}
+          <div className="form-group">
+            <FloorAreaBuilder
+              floors={floors}
+              onChange={setFloors}
+              error={error}
+            />
           </div>
 
           {/* Description */}
