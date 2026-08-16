@@ -7,7 +7,19 @@ const formatFrequency = (freq, customDate) => {
   return (freq || 'daily').charAt(0).toUpperCase() + (freq || 'daily').slice(1);
 };
 
-const TaskDetailsModal = ({ place, onClose, onStatusChange, isUpdating }) => {
+const AREA_TYPE_ICONS = {
+  room: '🚪',
+  sauna: '🧖‍♂️',
+  hall: '🏛️',
+  restroom: '🚻',
+  kitchen: '🍳',
+  lobby: '🏨',
+  office: '💼',
+  corridor: '🚶',
+  other: '📍',
+};
+
+const TaskDetailsModal = ({ place, onClose, onStatusChange, isUpdating, currentUserId }) => {
   const [activeImgIndex, setActiveImgIndex] = useState(0);
 
   if (!place) return null;
@@ -222,42 +234,81 @@ const TaskDetailsModal = ({ place, onClose, onStatusChange, isUpdating }) => {
                         No specific sub-areas listed for this floor.
                       </div>
                     ) : (
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 6 }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                         {fl.areas.map((ar, aIdx) => {
-                          const icon =
-                            ar.type === 'sauna'
-                              ? '🧖‍♂️'
-                              : ar.type === 'hall'
-                              ? '🏛️'
-                              : ar.type === 'restroom'
-                              ? '🚻'
-                              : ar.type === 'kitchen'
-                              ? '🍳'
-                              : ar.type === 'office'
-                              ? '💼'
-                              : '🚪';
+                          const icon = AREA_TYPE_ICONS[ar.type] || '🚪';
+                          const areaCleaners = ar.assignedCleaners || [];
+                          const isMyArea = currentUserId && areaCleaners.some(
+                            (c) => (typeof c === 'object' ? c._id : c) === currentUserId
+                          );
                           return (
                             <div
                               key={aIdx}
                               style={{
-                                background: 'rgba(15, 23, 42, 0.6)',
-                                border: '1px solid rgba(255, 255, 255, 0.05)',
-                                borderRadius: 6,
-                                padding: '6px 10px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                fontSize: 12,
-                                color: '#f1f5f9',
+                                background: isMyArea
+                                  ? 'rgba(16, 185, 129, 0.08)'
+                                  : 'rgba(15, 23, 42, 0.6)',
+                                border: isMyArea
+                                  ? '1.5px solid rgba(16, 185, 129, 0.35)'
+                                  : '1px solid rgba(255, 255, 255, 0.05)',
+                                borderRadius: 8,
+                                padding: '8px 12px',
                               }}
                             >
-                              <span style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 5 }}>
-                                <span>{icon}</span> {ar.name}
-                              </span>
-                              {ar.estimatedMinutes && (
-                                <span style={{ fontSize: 11, color: '#94a3b8' }}>
-                                  {ar.estimatedMinutes}m
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: areaCleaners.length > 0 ? 6 : 0 }}>
+                                <span style={{ fontWeight: 600, fontSize: 12.5, color: isMyArea ? '#34d399' : '#f1f5f9', display: 'flex', alignItems: 'center', gap: 5 }}>
+                                  <span>{icon}</span> {ar.name}
+                                  {isMyArea && (
+                                    <span style={{
+                                      fontSize: 10,
+                                      fontWeight: 700,
+                                      background: 'rgba(16, 185, 129, 0.2)',
+                                      border: '1px solid rgba(16, 185, 129, 0.4)',
+                                      color: '#34d399',
+                                      padding: '1px 6px',
+                                      borderRadius: 100,
+                                      marginLeft: 4,
+                                    }}>
+                                      ⭐ Your Area
+                                    </span>
+                                  )}
                                 </span>
+                                {ar.estimatedMinutes && (
+                                  <span style={{ fontSize: 11, color: '#94a3b8' }}>{ar.estimatedMinutes}m</span>
+                                )}
+                              </div>
+
+                              {/* Assigned cleaners for this area */}
+                              {areaCleaners.length > 0 && (
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                                  {areaCleaners.map((c) => {
+                                    const cId = typeof c === 'object' ? c._id : c;
+                                    const cName = typeof c === 'object' ? c.name : 'Cleaner';
+                                    const isMe = currentUserId && cId === currentUserId;
+                                    return (
+                                      <span
+                                        key={cId}
+                                        style={{
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          gap: 3,
+                                          fontSize: 11,
+                                          fontWeight: 600,
+                                          background: isMe ? 'rgba(16, 185, 129, 0.2)' : 'rgba(30, 41, 59, 0.8)',
+                                          border: isMe ? '1px solid rgba(16, 185, 129, 0.4)' : '1px solid rgba(255,255,255,0.1)',
+                                          color: isMe ? '#34d399' : '#94a3b8',
+                                          padding: '2px 7px',
+                                          borderRadius: 100,
+                                        }}
+                                      >
+                                        🧹 {cName.split(' ')[0]}{isMe ? ' (You)' : ''}
+                                      </span>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                              {areaCleaners.length === 0 && (
+                                <div style={{ fontSize: 10.5, color: '#475569', fontStyle: 'italic', marginTop: 2 }}>Unassigned</div>
                               )}
                             </div>
                           );

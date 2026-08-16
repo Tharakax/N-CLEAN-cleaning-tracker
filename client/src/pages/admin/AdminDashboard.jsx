@@ -765,14 +765,129 @@ const AdminDashboard = () => {
             </div>
           )}
 
-          {/* ── Placeholder tabs ── */}
-          {(activeTab === 'tasks' || activeTab === 'reports' || activeTab === 'settings') && (
+          {/* ── Cleaning Tasks Tab ── */}
+          {activeTab === 'tasks' && (
+            <div className="panel">
+              <div style={{ marginBottom: 20 }}>
+                <h3 className="section-heading" style={{ margin: '0 0 4px' }}><span />Cleaning Tasks</h3>
+                <p style={{ margin: 0, fontSize: 13, color: '#64748b' }}>
+                  Overview of all cleaners and their individual assigned cleaning areas.
+                </p>
+              </div>
+
+              {placesLoading || usersLoading ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  {[1, 2, 3].map((i) => <div key={i} className="skeleton" style={{ height: 80, borderRadius: 12 }} />)}
+                </div>
+              ) : (() => {
+                const cleaners = users.filter((u) => u.role === 'cleaner');
+                if (cleaners.length === 0) return (
+                  <div className="empty-state">
+                    <div className="empty-state-icon">🧹</div>
+                    No cleaners registered. Add cleaner users using the <strong>Users</strong> tab.
+                  </div>
+                );
+                return (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                    {cleaners.map((cleaner) => {
+                      const cleanerPlaces = places.filter((p) => {
+                        const inPlace = (p.assignedCleaners || []).some(
+                          (c) => (typeof c === 'object' ? c._id : c) === cleaner._id
+                        );
+                        const inArea = (p.floors || []).some((fl) =>
+                          (fl.areas || []).some((ar) =>
+                            (ar.assignedCleaners || []).some(
+                              (c) => (typeof c === 'object' ? c._id : c) === cleaner._id
+                            )
+                          )
+                        );
+                        return inPlace || inArea;
+                      });
+                      const areaAssignedPlaces = cleanerPlaces.map((p) => {
+                        const myAreas = [];
+                        (p.floors || []).forEach((fl) => {
+                          (fl.areas || []).forEach((ar) => {
+                            const assigned = (ar.assignedCleaners || []).some(
+                              (c) => (typeof c === 'object' ? c._id : c) === cleaner._id
+                            );
+                            if (assigned) myAreas.push({ floor: fl.floorName, area: ar.name, type: ar.type });
+                          });
+                        });
+                        return { place: p, myAreas };
+                      });
+                      const totalAreas = areaAssignedPlaces.reduce((sum, x) => sum + x.myAreas.length, 0);
+                      return (
+                        <div key={cleaner._id} style={{ background: 'rgba(15, 23, 42, 0.7)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, overflow: 'hidden' }}>
+                          <div style={{ padding: '14px 18px', background: 'rgba(30, 41, 59, 0.5)', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                            <div className="user-mini-avatar" style={{ background: 'linear-gradient(135deg, #10b981, #06b6d4)', width: 38, height: 38, fontSize: 13, flexShrink: 0 }}>
+                              {initials(cleaner.name)}
+                            </div>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontWeight: 700, fontSize: 14, color: '#f1f5f9' }}>{cleaner.name}</div>
+                              <div style={{ fontSize: 12, color: '#64748b' }}>{cleaner.email}</div>
+                            </div>
+                            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                              <span style={{ fontSize: 12, fontWeight: 600, padding: '3px 10px', borderRadius: 8, background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.25)', color: '#93c5fd' }}>
+                                📍 {cleanerPlaces.length} Place{cleanerPlaces.length !== 1 ? 's' : ''}
+                              </span>
+                              {totalAreas > 0 && (
+                                <span style={{ fontSize: 12, fontWeight: 600, padding: '3px 10px', borderRadius: 8, background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.25)', color: '#34d399' }}>
+                                  🚪 {totalAreas} Area{totalAreas !== 1 ? 's' : ''}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          {cleanerPlaces.length === 0 ? (
+                            <div style={{ padding: '16px 18px', fontSize: 13, color: '#475569', fontStyle: 'italic' }}>⚠️ No places or areas assigned yet.</div>
+                          ) : (
+                            <div style={{ padding: '12px 18px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                              {areaAssignedPlaces.map(({ place: p, myAreas }) => (
+                                <div key={p._id} style={{ background: 'rgba(30, 41, 59, 0.4)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, padding: '10px 14px' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: myAreas.length > 0 ? 8 : 0, flexWrap: 'wrap' }}>
+                                    <div>
+                                      <div style={{ fontWeight: 600, fontSize: 13.5, color: '#f1f5f9' }}>{p.name}</div>
+                                      <div style={{ fontSize: 11.5, color: '#64748b', marginTop: 1 }}>📍 {p.address}</div>
+                                    </div>
+                                    <span className={`cleaner-status-badge ${p.cleaningStatus || 'pending'}`} style={{ fontSize: 11, padding: '3px 10px' }}>
+                                      {p.cleaningStatus === 'completed' ? '✓ Completed' : p.cleaningStatus === 'in-progress' ? '🚀 In-Progress' : '⏳ To Do'}
+                                    </span>
+                                  </div>
+                                  {myAreas.length > 0 ? (
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                                      {myAreas.map((a, i) => {
+                                        const icons = { room:'🚪', sauna:'🧖‍♂️', hall:'🏛️', restroom:'🚻', kitchen:'🍳', lobby:'🏨', office:'💼', corridor:'🚶', other:'📍' };
+                                        return (
+                                          <span key={i} style={{ fontSize: 11.5, fontWeight: 600, background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.2)', color: '#93c5fd', padding: '2px 8px', borderRadius: 100, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                                            {icons[a.type] || '🚪'} {a.area}
+                                            <span style={{ fontSize: 10, color: '#64748b', marginLeft: 2 }}>({a.floor})</span>
+                                          </span>
+                                        );
+                                      })}
+                                    </div>
+                                  ) : (
+                                    <div style={{ fontSize: 11.5, color: '#64748b', fontStyle: 'italic' }}>Assigned to whole place (no specific areas)</div>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+
+          {/* ── Reports & Settings Placeholder ── */}
+          {(activeTab === 'reports' || activeTab === 'settings') && (
             <div className="panel" style={{ textAlign: 'center', padding: 80 }}>
               <div style={{ fontSize: 52, marginBottom: 16 }}>
-                {activeTab === 'tasks' ? '✅' : activeTab === 'reports' ? '📈' : '⚙️'}
+                {activeTab === 'reports' ? '📈' : '⚙️'}
               </div>
               <div style={{ fontSize: 20, fontWeight: 700, color: '#f1f5f9', marginBottom: 8 }}>
-                {activeTab === 'tasks' ? 'Task Manager' : activeTab === 'reports' ? 'Reports & Analytics' : 'Settings'}
+                {activeTab === 'reports' ? 'Reports & Analytics' : 'Settings'}
               </div>
               <div style={{ fontSize: 14, color: '#475569' }}>
                 This section is coming soon. You can build it out using the task routes already set up.

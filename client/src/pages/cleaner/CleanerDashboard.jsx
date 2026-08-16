@@ -430,6 +430,7 @@ const CleanerDashboard = () => {
           onClose={() => setSelectedPlace(null)}
           onStatusChange={handleStatusChange}
           isUpdating={updatingId === selectedPlace._id}
+          currentUserId={user?._id}
         />
       )}
 

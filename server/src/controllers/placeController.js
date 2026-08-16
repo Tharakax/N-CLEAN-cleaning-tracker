@@ -5,12 +5,15 @@ const Place = require('../models/Place');
  * @route GET /api/places
  * @access Private
  */
+const populatePlaceCleaners = (query) =>
+  query
+    .populate('createdBy', 'name email role')
+    .populate('assignedCleaners', 'name email role')
+    .populate('floors.areas.assignedCleaners', 'name email role');
+
 const getPlaces = async (req, res) => {
   try {
-    const places = await Place.find()
-      .populate('createdBy', 'name email role')
-      .populate('assignedCleaners', 'name email role')
-      .sort({ createdAt: -1 });
+    const places = await populatePlaceCleaners(Place.find().sort({ createdAt: -1 }));
     res.json(places);
   } catch (error) {
     console.error('Error fetching places:', error);
@@ -25,9 +28,7 @@ const getPlaces = async (req, res) => {
  */
 const getPlaceById = async (req, res) => {
   try {
-    const place = await Place.findById(req.params.id)
-      .populate('createdBy', 'name email role')
-      .populate('assignedCleaners', 'name email role');
+    const place = await populatePlaceCleaners(Place.findById(req.params.id));
     if (!place) return res.status(404).json({ message: 'Place not found' });
     res.json(place);
   } catch (error) {
@@ -145,6 +146,7 @@ const createPlace = async (req, res) => {
     const populated = await place.populate([
       { path: 'createdBy', select: 'name email role' },
       { path: 'assignedCleaners', select: 'name email role' },
+      { path: 'floors.areas.assignedCleaners', select: 'name email role' },
     ]);
     res.status(201).json(populated);
   } catch (error) {
@@ -206,12 +208,9 @@ const updatePlace = async (req, res) => {
       }
     }
 
-    const updated = await Place.findByIdAndUpdate(req.params.id, updateData, {
-      new: true,
-      runValidators: true,
-    })
-      .populate('createdBy', 'name email role')
-      .populate('assignedCleaners', 'name email role');
+    const updated = await populatePlaceCleaners(
+      Place.findByIdAndUpdate(req.params.id, updateData, { new: true, runValidators: true })
+    );
 
     res.json(updated);
   } catch (error) {
@@ -226,21 +225,57 @@ const updatePlace = async (req, res) => {
  */
 const assignCleanersToPlace = async (req, res) => {
   try {
-    const { cleanerIds } = req.body;
-    if (!Array.isArray(cleanerIds)) {
-      return res.status(400).json({ message: 'cleanerIds must be an array of user IDs' });
-    }
+    const { cleanerIds, floors, scheduledDate, frequency, customDate } = req.body;
 
     const place = await Place.findById(req.params.id);
     if (!place) return res.status(404).json({ message: 'Place not found' });
 
-    place.assignedCleaners = cleanerIds;
+    // If floors with area-level assignments are provided, merge them
+    if (Array.isArray(floors)) {
+      // Collect all unique cleaner IDs across all areas to auto-update place-level assignedCleaners
+      const areaCleanerSet = new Set();
+
+      floors.forEach((fl, flIdx) => {
+        if (!place.floors[flIdx]) return;
+        (fl.areas || []).forEach((ar, arIdx) => {
+          const area = place.floors[flIdx].areas[arIdx];
+          if (!area) return;
+          const ids = Array.isArray(ar.assignedCleaners) ? ar.assignedCleaners : [];
+          area.assignedCleaners = ids;
+          ids.forEach((id) => areaCleanerSet.add(id.toString()));
+        });
+      });
+
+      // CRITICAL: tell Mongoose the nested array was mutated
+      place.markModified('floors');
+
+      // Union: place-level cleaners = explicit cleanerIds (if given) UNION area-level cleaners
+      const explicitIds = Array.isArray(cleanerIds) ? cleanerIds.map(String) : [];
+      const unionIds = [...new Set([...explicitIds, ...areaCleanerSet])];
+      place.assignedCleaners = unionIds;
+    } else if (Array.isArray(cleanerIds)) {
+      // Plain place-level assignment only (no floor/area breakdown)
+      place.assignedCleaners = cleanerIds;
+    } else {
+      return res.status(400).json({ message: 'cleanerIds or floors must be provided' });
+    }
+
+    // Update schedule fields if provided
+    if (frequency) {
+      place.frequency = frequency;
+    }
+    if (customDate !== undefined) {
+      place.customDate = customDate ? new Date(customDate) : null;
+    }
+    // Store scheduledDate in customDate when frequency is not 'custom', or as the start date
+    if (scheduledDate && frequency !== 'custom') {
+      // For non-custom frequencies, we store the next scheduled date in customDate as reference
+      place.customDate = new Date(scheduledDate);
+    }
+
     await place.save();
 
-    const populated = await Place.findById(place._id)
-      .populate('createdBy', 'name email role')
-      .populate('assignedCleaners', 'name email role');
-
+    const populated = await populatePlaceCleaners(Place.findById(place._id));
     res.json(populated);
   } catch (error) {
     console.error('Error assigning cleaners:', error);
@@ -272,12 +307,15 @@ const deletePlace = async (req, res) => {
  */
 const getCleanerPlaces = async (req, res) => {
   try {
-    const places = await Place.find({
-      assignedCleaners: req.user._id,
-    })
-      .populate('createdBy', 'name email role')
-      .populate('assignedCleaners', 'name email role')
-      .sort({ updatedAt: -1 });
+    // A cleaner can be assigned at the place level OR at an individual area level
+    const places = await populatePlaceCleaners(
+      Place.find({
+        $or: [
+          { assignedCleaners: req.user._id },
+          { 'floors.areas.assignedCleaners': req.user._id },
+        ],
+      }).sort({ updatedAt: -1 })
+    );
 
     res.json(places);
   } catch (error) {
@@ -318,9 +356,7 @@ const updatePlaceCleaningStatus = async (req, res) => {
     }
     await place.save();
 
-    const populated = await Place.findById(place._id)
-      .populate('createdBy', 'name email role')
-      .populate('assignedCleaners', 'name email role');
+    const populated = await populatePlaceCleaners(Place.findById(place._id));
 
     res.json(populated);
   } catch (error) {

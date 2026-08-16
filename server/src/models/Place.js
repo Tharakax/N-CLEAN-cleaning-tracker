@@ -121,6 +121,12 @@ const placeSchema = new mongoose.Schema(
               type: Number,
               default: 15,
             },
+            assignedCleaners: [
+              {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: 'User',
+              },
+            ],
           },
         ],
       },
