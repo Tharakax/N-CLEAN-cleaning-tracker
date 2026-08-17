@@ -58,6 +58,8 @@ const createPlace = async (req, res) => {
       timeOfDay,
       assignedCleaners,
       floors,
+      geofenceEnabled,
+      geofenceRadiusMeters,
     } = req.body;
 
     if (!name || !address) {
@@ -140,6 +142,8 @@ const createPlace = async (req, res) => {
       timeOfDay: timeOfDay || 'anytime',
       assignedCleaners: Array.isArray(assignedCleaners) ? assignedCleaners : [],
       floors: formattedFloors,
+      geofenceEnabled: geofenceEnabled !== undefined ? Boolean(geofenceEnabled) : true,
+      geofenceRadiusMeters: Number(geofenceRadiusMeters) || 200,
       createdBy: req.user._id,
     });
 
@@ -170,6 +174,13 @@ const updatePlace = async (req, res) => {
     }
 
     const updateData = { ...req.body };
+
+    if (req.body.geofenceEnabled !== undefined) {
+      updateData.geofenceEnabled = Boolean(req.body.geofenceEnabled);
+    }
+    if (req.body.geofenceRadiusMeters !== undefined) {
+      updateData.geofenceRadiusMeters = Number(req.body.geofenceRadiusMeters) || 200;
+    }
 
     if (Array.isArray(req.body.floors)) {
       const allAreaNames = new Set();
@@ -225,7 +236,7 @@ const updatePlace = async (req, res) => {
  */
 const assignCleanersToPlace = async (req, res) => {
   try {
-    const { cleanerIds, floors, scheduledDate, frequency, customDate } = req.body;
+    const { cleanerIds, floors, scheduledDate, frequency, customDate, geofenceEnabled, geofenceRadiusMeters } = req.body;
 
     const place = await Place.findById(req.params.id);
     if (!place) return res.status(404).json({ message: 'Place not found' });
@@ -271,6 +282,14 @@ const assignCleanersToPlace = async (req, res) => {
     if (scheduledDate && frequency !== 'custom') {
       // For non-custom frequencies, we store the next scheduled date in customDate as reference
       place.customDate = new Date(scheduledDate);
+    }
+
+    // Update geofence settings if provided
+    if (geofenceEnabled !== undefined) {
+      place.geofenceEnabled = Boolean(geofenceEnabled);
+    }
+    if (geofenceRadiusMeters !== undefined) {
+      place.geofenceRadiusMeters = Number(geofenceRadiusMeters) || 200;
     }
 
     await place.save();

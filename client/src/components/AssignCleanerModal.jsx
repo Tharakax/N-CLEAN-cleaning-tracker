@@ -51,6 +51,14 @@ const AssignCleanerModal = ({ place, onClose, onAssigned }) => {
   const [frequency, setFrequency] = useState('daily');
   const [customDateEnd, setCustomDateEnd] = useState('');
 
+  // Geofence Vicinity Verification Toggle & Radius
+  const [geofenceEnabled, setGeofenceEnabled] = useState(
+    place?.geofenceEnabled !== undefined ? place.geofenceEnabled : true
+  );
+  const [geofenceRadiusMeters, setGeofenceRadiusMeters] = useState(
+    place?.geofenceRadiusMeters || 200
+  );
+
   useEffect(() => {
     // Pre-populate place-level
     if (place?.assignedCleaners) {
@@ -60,11 +68,17 @@ const AssignCleanerModal = ({ place, onClose, onAssigned }) => {
       setSelectedCleaners(existingIds);
     }
 
-    // Pre-populate schedule from existing place values
+    // Pre-populate schedule and geofence from existing place values
     if (place?.frequency) setFrequency(place.frequency);
     if (place?.customDate) {
       const d = new Date(place.customDate);
       setCustomDateEnd(d.toISOString().split('T')[0]);
+    }
+    if (place?.geofenceEnabled !== undefined) {
+      setGeofenceEnabled(place.geofenceEnabled);
+    }
+    if (place?.geofenceRadiusMeters) {
+      setGeofenceRadiusMeters(place.geofenceRadiusMeters);
     }
     // Default scheduledDate to today
     setScheduledDate(new Date().toISOString().split('T')[0]);
@@ -189,6 +203,8 @@ const AssignCleanerModal = ({ place, onClose, onAssigned }) => {
         scheduledDate,
         frequency,
         ...(frequency === 'custom' ? { customDate: customDateEnd } : { customDate: null }),
+        geofenceEnabled,
+        geofenceRadiusMeters: Number(geofenceRadiusMeters) || 200,
       };
       if (mode === 'area' && hasFloors) {
         payload = { floors: buildFloorsPayload(), ...scheduleData };
@@ -226,15 +242,25 @@ const AssignCleanerModal = ({ place, onClose, onAssigned }) => {
   const totalAreaCount = place?.floors?.reduce((sum, fl) => sum + (fl.areas?.length || 0), 0) || 0;
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" onClick={onClose} style={{ zIndex: 1200, padding: 16 }}>
       <div
         className="modal modal-large"
         onClick={(e) => e.stopPropagation()}
-        style={{ maxWidth: 680, padding: 0, overflow: 'hidden', borderRadius: 20 }}
+        style={{
+          maxWidth: 680,
+          width: '100%',
+          maxHeight: '90vh',
+          display: 'flex',
+          flexDirection: 'column',
+          padding: 0,
+          overflow: 'hidden',
+          borderRadius: 20,
+        }}
       >
         {/* Header */}
         <div
           style={{
+            flexShrink: 0,
             padding: '22px 26px 16px',
             background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(7, 13, 24, 0.98))',
             borderBottom: '1px solid rgba(255,255,255,0.07)',
@@ -289,7 +315,8 @@ const AssignCleanerModal = ({ place, onClose, onAssigned }) => {
           )}
         </div>
 
-        <div style={{ maxHeight: '72vh', overflowY: 'auto' }}>
+        {/* Scrollable Modal Content */}
+        <div style={{ flex: 1, overflowY: 'auto' }}>
 
           {/* ── SCHEDULE SECTION (shared across both modes) ── */}
           <div
@@ -417,6 +444,87 @@ const AssignCleanerModal = ({ place, onClose, onAssigned }) => {
                 <span style={{ textTransform: 'capitalize', color: '#a5b4fc' }}>
                   {frequency}{frequency === 'custom' && customDateEnd ? ` until ${new Date(customDateEnd + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}` : ''}
                 </span>
+              </div>
+            )}
+          </div>
+
+          {/* ── GEOFENCE / VICINITY VERIFICATION SECTION ── */}
+          <div
+            style={{
+              padding: '16px 26px',
+              borderBottom: '1px solid rgba(255,255,255,0.06)',
+              background: 'rgba(15, 23, 42, 0.4)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+              <div>
+                <div style={{ fontSize: 13.5, fontWeight: 700, color: '#f1f5f9', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span>📍</span> GPS Vicinity Check (Google Maps Geofence)
+                </div>
+                <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>
+                  Cleaner must physically be within the designated area radius before starting cleaning.
+                </div>
+              </div>
+
+              {/* Toggle Switch */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: 12.5, fontWeight: 700, color: geofenceEnabled ? '#34d399' : '#94a3b8' }}>
+                  {geofenceEnabled ? 'Active / Required' : 'Disabled'}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setGeofenceEnabled(!geofenceEnabled)}
+                  style={{
+                    width: 48,
+                    height: 26,
+                    borderRadius: 20,
+                    background: geofenceEnabled ? '#10b981' : 'rgba(255,255,255,0.15)',
+                    border: 'none',
+                    position: 'relative',
+                    cursor: 'pointer',
+                    transition: 'background 0.2s',
+                    padding: 2,
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 22,
+                      height: 22,
+                      borderRadius: '50%',
+                      background: '#fff',
+                      transform: geofenceEnabled ? 'translateX(22px)' : 'translateX(0)',
+                      transition: 'transform 0.2s',
+                      boxShadow: '0 2px 5px rgba(0,0,0,0.3)',
+                    }}
+                  />
+                </button>
+              </div>
+            </div>
+
+            {/* Radius Selector if Enabled */}
+            {geofenceEnabled && (
+              <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 12, color: '#64748b', fontWeight: 600 }}>Allowed Radius:</span>
+                {[100, 200, 300, 500, 1000].map((radius) => (
+                  <button
+                    key={radius}
+                    type="button"
+                    onClick={() => setGeofenceRadiusMeters(radius)}
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: 6,
+                      fontSize: 11.5,
+                      fontWeight: 600,
+                      border: `1px solid ${geofenceRadiusMeters === radius ? 'rgba(52, 211, 153, 0.6)' : 'rgba(255,255,255,0.1)'}`,
+                      background: geofenceRadiusMeters === radius ? 'rgba(52, 211, 153, 0.15)' : 'rgba(255,255,255,0.03)',
+                      color: geofenceRadiusMeters === radius ? '#34d399' : '#94a3b8',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s',
+                    }}
+                  >
+                    {radius >= 1000 ? `${radius / 1000} km` : `${radius}m`}
+                  </button>
+                ))}
               </div>
             )}
           </div>
@@ -668,78 +776,6 @@ const AssignCleanerModal = ({ place, onClose, onAssigned }) => {
                     </div>
                   </div>
                 ))}
-              </div>
-
-              {/* Sticky save bar for area mode */}
-              <div
-                style={{
-                  marginTop: 20,
-                  padding: '14px 18px',
-                  background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(7, 13, 24, 0.98))',
-                  border: '1px solid rgba(59, 130, 246, 0.25)',
-                  borderRadius: 14,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: 12,
-                  flexWrap: 'wrap',
-                  position: 'sticky',
-                  bottom: 0,
-                }}
-              >
-                <div style={{ fontSize: 12.5, color: '#64748b' }}>
-                  <span style={{ color: '#60a5fa', fontWeight: 700 }}>
-                    {Object.values(areaAssignments).filter((ids) => ids.length > 0).length}
-                  </span>
-                  {' '}of{' '}
-                  <span style={{ color: '#f1f5f9', fontWeight: 600 }}>{totalAreaCount}</span>
-                  {' '}areas assigned
-                </div>
-                <div style={{ display: 'flex', gap: 10 }}>
-                  <button
-                    type="button"
-                    className="btn-cancel"
-                    onClick={onClose}
-                    disabled={saving}
-                    style={{ padding: '9px 18px' }}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleSave}
-                    disabled={saving}
-                    style={{
-                      padding: '9px 22px',
-                      background: saving
-                        ? 'rgba(59,130,246,0.3)'
-                        : 'linear-gradient(135deg, #3b82f6, #2563eb)',
-                      border: 'none',
-                      borderRadius: 10,
-                      color: '#fff',
-                      fontWeight: 700,
-                      fontSize: 13.5,
-                      cursor: saving ? 'not-allowed' : 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 7,
-                      boxShadow: saving ? 'none' : '0 4px 14px rgba(37,99,235,0.4)',
-                      transition: 'all 0.2s',
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!saving) e.currentTarget.style.boxShadow = '0 6px 20px rgba(37,99,235,0.6)';
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!saving) e.currentTarget.style.boxShadow = '0 4px 14px rgba(37,99,235,0.4)';
-                    }}
-                  >
-                    {saving ? (
-                      <>⏳ Saving…</>
-                    ) : (
-                      <>✓ Save Assignments</>
-                    )}
-                  </button>
-                </div>
               </div>
             </div>
           )}

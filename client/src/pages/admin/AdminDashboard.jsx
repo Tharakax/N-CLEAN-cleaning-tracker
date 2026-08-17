@@ -7,6 +7,7 @@ import './AdminDashboard.css';
 import AddPlaceModal from '../../components/AddPlaceModal';
 import AssignCleanerModal from '../../components/AssignCleanerModal';
 import EditPlaceModal from '../../components/EditPlaceModal';
+import ReportsView from '../../components/ReportsView';
 
 /* ── helpers ──────────────────────────────────────────────────── */
 const initials = (name = '') =>
@@ -880,17 +881,28 @@ const AdminDashboard = () => {
             </div>
           )}
 
-          {/* ── Reports & Settings Placeholder ── */}
-          {(activeTab === 'reports' || activeTab === 'settings') && (
-            <div className="panel" style={{ textAlign: 'center', padding: 80 }}>
-              <div style={{ fontSize: 52, marginBottom: 16 }}>
-                {activeTab === 'reports' ? '📈' : '⚙️'}
+          {/* ── Reports Tab ── */}
+          {activeTab === 'reports' && (
+            <div className="panel">
+              <div style={{ marginBottom: 20 }}>
+                <h3 className="section-heading" style={{ margin: '0 0 4px' }}><span />Cleaning Reports & Analytics</h3>
+                <p style={{ margin: 0, fontSize: 13, color: '#64748b' }}>
+                  Filter, inspect, and export exact cleaning times, overtime, and rounded billing/payroll hours.
+                </p>
               </div>
+              <ReportsView />
+            </div>
+          )}
+
+          {/* ── Settings Placeholder ── */}
+          {activeTab === 'settings' && (
+            <div className="panel" style={{ textAlign: 'center', padding: 80 }}>
+              <div style={{ fontSize: 52, marginBottom: 16 }}>⚙️</div>
               <div style={{ fontSize: 20, fontWeight: 700, color: '#f1f5f9', marginBottom: 8 }}>
-                {activeTab === 'reports' ? 'Reports & Analytics' : 'Settings'}
+                Settings
               </div>
               <div style={{ fontSize: 14, color: '#475569' }}>
-                This section is coming soon. You can build it out using the task routes already set up.
+                System configuration & preferences.
               </div>
             </div>
           )}

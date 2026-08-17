@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import API from '../../api/axios';
 import TaskDetailsModal from '../../components/TaskDetailsModal';
+import ActiveCleaningModal from '../../components/ActiveCleaningModal';
 import './CleanerDashboard.css';
 
 /* ── helpers ──────────────────────────────────────────────────── */
@@ -24,7 +25,7 @@ const CleanerDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all'); // 'all' | 'pending' | 'in-progress' | 'completed'
   const [updatingId, setUpdatingId] = useState(null);
-  const [confirmingStartPlace, setConfirmingStartPlace] = useState(null);
+  const [activeCleaningPlace, setActiveCleaningPlace] = useState(null);
   const [selectedPlace, setSelectedPlace] = useState(null);
 
   const fetchAssignedPlaces = useCallback(async () => {
@@ -44,11 +45,12 @@ const CleanerDashboard = () => {
   }, [fetchAssignedPlaces]);
 
   const handleStatusChange = async (placeId, newStatus) => {
-    // If starting cleaning, prompt for confirmation
+    // If starting or working on cleaning, launch the Active Cleaning & Timer Modal
     if (newStatus === 'in-progress') {
       const target = places.find((p) => p._id === placeId) || selectedPlace;
       if (target) {
-        setConfirmingStartPlace(target);
+        if (selectedPlace) setSelectedPlace(null);
+        setActiveCleaningPlace(target);
         return;
       }
     }
@@ -74,11 +76,8 @@ const CleanerDashboard = () => {
     }
   };
 
-  const handleConfirmStart = async () => {
-    if (!confirmingStartPlace) return;
-    const placeId = confirmingStartPlace._id;
-    setConfirmingStartPlace(null);
-    await executeStatusChange(placeId, 'in-progress');
+  const handleCleaningCompleted = (newLog) => {
+    fetchAssignedPlaces();
   };
 
   const handleLogout = () => {
@@ -434,84 +433,17 @@ const CleanerDashboard = () => {
         />
       )}
 
-      {/* Start Cleaning Confirmation Modal */}
-      {confirmingStartPlace && (
-        <div
-          className="modal-overlay"
-          onClick={() => setConfirmingStartPlace(null)}
-          style={{ zIndex: 1100 }}
-        >
-          <div
-            className="modal"
-            onClick={(e) => e.stopPropagation()}
-            style={{ maxWidth: 420, textAlign: 'center', padding: '30px 26px' }}
-          >
-            <div
-              style={{
-                width: 56,
-                height: 56,
-                borderRadius: '50%',
-                background: 'rgba(59, 130, 246, 0.15)',
-                border: '1px solid rgba(59, 130, 246, 0.3)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: 26,
-                margin: '0 auto 16px',
-              }}
-            >
-              🚀
-            </div>
-
-            <h3 style={{ fontSize: 19, fontWeight: 800, color: '#fff', margin: '0 0 8px' }}>
-              Start Cleaning Task?
-            </h3>
-
-            <p style={{ fontSize: 13.5, color: '#94a3b8', margin: '0 0 20px', lineHeight: 1.5 }}>
-              Are you ready to begin cleaning <strong>{confirmingStartPlace.name}</strong>?
-              This will change the task status to <strong style={{ color: '#60a5fa' }}>In Progress</strong>.
-            </p>
-
-            <div
-              style={{
-                background: 'rgba(15, 23, 42, 0.6)',
-                borderRadius: 10,
-                border: '1px solid rgba(255, 255, 255, 0.06)',
-                padding: '10px 14px',
-                marginBottom: 24,
-                fontSize: 12.5,
-                color: '#cbd5e1',
-                textAlign: 'left',
-              }}
-            >
-              <div>📍 <strong>Location:</strong> {confirmingStartPlace.address}</div>
-              <div style={{ marginTop: 4 }}>⏱️ <strong>Est. Duration:</strong> {confirmingStartPlace.estimatedTimeMinutes} mins</div>
-            </div>
-
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button
-                type="button"
-                className="btn-cancel"
-                onClick={() => setConfirmingStartPlace(null)}
-                style={{ flex: 1 }}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="btn-create"
-                onClick={handleConfirmStart}
-                style={{
-                  flex: 1.2,
-                  background: 'linear-gradient(135deg, #3b82f6, #06b6d4)',
-                  boxShadow: '0 4px 14px rgba(59, 130, 246, 0.4)',
-                }}
-              >
-                Yes, Start Now 🚀
-              </button>
-            </div>
-          </div>
-        </div>
+      {/* Active Cleaning Modal (Vicinity Check, Tasks Modal, Countdown & Overtime Timer) */}
+      {activeCleaningPlace && (
+        <ActiveCleaningModal
+          place={activeCleaningPlace}
+          currentUser={user}
+          onClose={() => {
+            setActiveCleaningPlace(null);
+            fetchAssignedPlaces();
+          }}
+          onCompleted={handleCleaningCompleted}
+        />
       )}
     </div>
   );

@@ -14,6 +14,8 @@ const AddPlaceModal = ({ onClose, onCreated }) => {
     description: '',
     workersNeeded: 1,
     timeOfDay: 'anytime',
+    geofenceEnabled: true,
+    geofenceRadiusMeters: 200,
   });
 
   const [floors, setFloors] = useState([]);
@@ -31,8 +33,11 @@ const AddPlaceModal = ({ onClose, onCreated }) => {
   const [error, setError] = useState('');
 
   const handleChange = (e) => {
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
+    const { name, value, type, checked } = e.target;
+    setForm((prev) => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value,
+    }));
   };
 
   const handleLocationSelect = (loc) => {
@@ -146,6 +151,8 @@ const AddPlaceModal = ({ onClose, onCreated }) => {
         images: uploadedUrls,
         estimatedTimeMinutes: Number(form.estimatedTimeMinutes),
         workersNeeded: Number(form.workersNeeded),
+        geofenceEnabled: Boolean(form.geofenceEnabled),
+        geofenceRadiusMeters: Number(form.geofenceRadiusMeters) || 200,
         floors: floors,
       };
 
@@ -238,6 +245,85 @@ const AddPlaceModal = ({ onClose, onCreated }) => {
                   onChange={handleChange}
                   required
                 />
+              </div>
+            )}
+          </div>
+
+          {/* GPS Vicinity Check (Google Maps Geofence) Toggle */}
+          <div
+            style={{
+              padding: '14px 16px',
+              background: 'rgba(15, 23, 42, 0.6)',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              borderRadius: 12,
+              marginBottom: 18,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+              <div>
+                <div style={{ fontSize: 13.5, fontWeight: 700, color: '#f1f5f9', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span>📍</span> Enforce GPS Vicinity Check on Start
+                </div>
+                <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>
+                  Cleaner must be physically at the location to start the cleaning countdown timer.
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: 12, fontWeight: 700, color: form.geofenceEnabled ? '#34d399' : '#94a3b8' }}>
+                  {form.geofenceEnabled ? 'Active' : 'Disabled'}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setForm((p) => ({ ...p, geofenceEnabled: !p.geofenceEnabled }))}
+                  style={{
+                    width: 46,
+                    height: 24,
+                    borderRadius: 20,
+                    background: form.geofenceEnabled ? '#10b981' : 'rgba(255,255,255,0.15)',
+                    border: 'none',
+                    position: 'relative',
+                    cursor: 'pointer',
+                    transition: 'background 0.2s',
+                    padding: 2,
+                  }}
+                >
+                  <div
+                    style={{
+                      width: 20,
+                      height: 20,
+                      borderRadius: '50%',
+                      background: '#fff',
+                      transform: form.geofenceEnabled ? 'translateX(22px)' : 'translateX(0)',
+                      transition: 'transform 0.2s',
+                    }}
+                  />
+                </button>
+              </div>
+            </div>
+
+            {form.geofenceEnabled && (
+              <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 11.5, color: '#64748b', fontWeight: 600 }}>Allowed Radius:</span>
+                {[100, 200, 300, 500, 1000].map((radius) => (
+                  <button
+                    key={radius}
+                    type="button"
+                    onClick={() => setForm((p) => ({ ...p, geofenceRadiusMeters: radius }))}
+                    style={{
+                      padding: '3px 8px',
+                      borderRadius: 6,
+                      fontSize: 11,
+                      fontWeight: 600,
+                      border: `1px solid ${form.geofenceRadiusMeters === radius ? 'rgba(52, 211, 153, 0.6)' : 'rgba(255,255,255,0.1)'}`,
+                      background: form.geofenceRadiusMeters === radius ? 'rgba(52, 211, 153, 0.15)' : 'rgba(255,255,255,0.03)',
+                      color: form.geofenceRadiusMeters === radius ? '#34d399' : '#94a3b8',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {radius >= 1000 ? `${radius / 1000} km` : `${radius}m`}
+                  </button>
+                ))}
               </div>
             )}
           </div>

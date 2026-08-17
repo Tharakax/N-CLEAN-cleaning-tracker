@@ -150,6 +150,16 @@ const placeSchema = new mongoose.Schema(
       enum: ['active', 'inactive', 'maintenance'],
       default: 'active',
     },
+    geofenceEnabled: {
+      type: Boolean,
+      default: true,
+    },
+    geofenceRadiusMeters: {
+      type: Number,
+      default: 200,
+      min: [50, 'Geofence radius must be at least 50 metres'],
+      max: [5000, 'Geofence radius cannot exceed 5000 metres'],
+    },
   },
   { timestamps: true }
 );

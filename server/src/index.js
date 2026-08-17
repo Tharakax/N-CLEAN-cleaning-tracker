@@ -8,6 +8,7 @@ const authRoutes = require('./routes/authRoutes');
 const taskRoutes = require('./routes/taskRoutes');
 const userRoutes = require('./routes/userRoutes');
 const placeRoutes = require('./routes/placeRoutes');
+const cleaningLogRoutes = require('./routes/cleaningLogRoutes');
 const { notFound, errorHandler } = require('./middleware/errorMiddleware');
 
 // ─── Connect to Database ──────────────────────────────────────────────────────
@@ -33,6 +34,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/tasks', taskRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/places', placeRoutes);
+app.use('/api/cleaning-logs', cleaningLogRoutes);
 
 // ─── Error Handling ───────────────────────────────────────────────────────────
 app.use(notFound);

@@ -139,6 +139,7 @@ const AddCleanerModal = ({ onClose, onCreated }) => {
 
 import AssignCleanerModal from '../../components/AssignCleanerModal';
 import EditPlaceModal from '../../components/EditPlaceModal';
+import ReportsView from '../../components/ReportsView';
 
 /* ── Place Card Component ─────────────────────────────────────── */
 const PlaceCard = ({ place, onDelete, onAssign, onEdit }) => {
@@ -970,14 +971,16 @@ const SupervisorDashboard = () => {
             </div>
           )}
 
-          {/* ── Reports Placeholder ── */}
+          {/* ── Reports Tab ── */}
           {activeTab === 'reports' && (
-            <div className="panel" style={{ textAlign: 'center', padding: 80 }}>
-              <div style={{ fontSize: 52, marginBottom: 16 }}>📈</div>
-              <div style={{ fontSize: 20, fontWeight: 700, color: '#f1f5f9', marginBottom: 8 }}>Cleaning Reports</div>
-              <div style={{ fontSize: 14, color: '#475569' }}>
-                This section is being configured for supervisor task dispatch and verification.
+            <div className="panel">
+              <div style={{ marginBottom: 20 }}>
+                <h3 className="section-heading" style={{ margin: '0 0 4px' }}><span />Supervisor Cleaning Reports</h3>
+                <p style={{ margin: 0, fontSize: 13, color: '#64748b' }}>
+                  Review cleaner performance, exact durations, overtime extra hours, and export CSV logs.
+                </p>
               </div>
+              <ReportsView />
             </div>
           )}
         </div>
