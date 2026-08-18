@@ -3,6 +3,8 @@
   "version": "1.0.0",
   "description": "N-CLEAN - Full-stack MERN Cleaning Tracker",
   "scripts": {
+    "start": "node server/src/index.js",
+    "build": "npm install --prefix server && npm install --prefix client && npm run build --prefix client",
     "server": "npm run dev --prefix server",
     "client": "npm run dev --prefix client",
     "dev": "concurrently \"npm run server\" \"npm run client\"",

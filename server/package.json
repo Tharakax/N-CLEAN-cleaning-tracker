@@ -9,7 +9,11 @@
     "seed": "node src/seed.js",
     "lint": "eslint src/"
   },
-  "keywords": ["cleaning-tracker", "mern", "express"],
+  "keywords": [
+    "cleaning-tracker",
+    "mern",
+    "express"
+  ],
   "author": "",
   "license": "ISC",
   "dependencies": {
@@ -20,7 +24,8 @@
     "express-validator": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.5.1",
-    "morgan": "^1.10.0"
+    "morgan": "^1.10.0",
+    "nclean-cleaning-tracker": "file:.."
   },
   "devDependencies": {
     "nodemon": "^3.1.4"

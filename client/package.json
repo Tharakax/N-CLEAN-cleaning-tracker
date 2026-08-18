@@ -12,6 +12,7 @@
     "@react-google-maps/api": "^2.20.8",
     "@supabase/supabase-js": "^2.112.3",
     "axios": "^1.7.3",
+    "nclean-cleaning-tracker": "file:..",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.25.1"

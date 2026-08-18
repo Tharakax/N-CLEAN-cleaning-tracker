@@ -3,6 +3,8 @@ const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
 
+const path = require('path');
+
 const connectDB = require('./config/db');
 const authRoutes = require('./routes/authRoutes');
 const taskRoutes = require('./routes/taskRoutes');
@@ -18,7 +20,25 @@ connectDB();
 const app = express();
 
 // ─── Core Middleware ──────────────────────────────────────────────────────────
-app.use(cors());
+const clientUrl = process.env.CLIENT_URL;
+if (clientUrl) {
+  const allowedOrigins = clientUrl.split(',').map((origin) => origin.trim());
+  app.use(
+    cors({
+      origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
+          callback(null, true);
+        } else {
+          callback(new Error('Blocked by CORS'));
+        }
+      },
+      credentials: true,
+    })
+  );
+} else {
+  app.use(cors());
+}
+
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: false, limit: '10mb' }));
 
@@ -35,6 +55,20 @@ app.use('/api/tasks', taskRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/places', placeRoutes);
 app.use('/api/cleaning-logs', cleaningLogRoutes);
+
+// ─── Static Assets in Production (All-in-One Deployment) ───────────────────────
+const clientDistPath = path.resolve(__dirname, '../../client/dist');
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(clientDistPath));
+
+  app.get('*', (req, res, next) => {
+    // If request starts with /api, pass to 404 handler
+    if (req.originalUrl.startsWith('/api')) {
+      return next();
+    }
+    res.sendFile(path.join(clientDistPath, 'index.html'));
+  });
+}
 
 // ─── Error Handling ───────────────────────────────────────────────────────────
 app.use(notFound);
