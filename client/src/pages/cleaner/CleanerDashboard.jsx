@@ -33,6 +33,21 @@ const CleanerDashboard = () => {
       setLoading(true);
       const { data } = await API.get('/places/my-tasks');
       setPlaces(data);
+
+      // Check if user had an active cleaning modal open before refresh (via localStorage or in-progress status)
+      const inProgressPlace = data.find((p) => p.cleaningStatus === 'in-progress');
+      if (inProgressPlace) {
+        // If localStorage has an active session for this place or another in-progress place, re-open modal
+        for (const p of data) {
+          const key = `nclean_active_session_${p._id}`;
+          if (localStorage.getItem(key)) {
+            setActiveCleaningPlace(p);
+            return;
+          }
+        }
+        // Fallback: If place is marked in-progress on backend, also automatically offer active timer modal
+        setActiveCleaningPlace(inProgressPlace);
+      }
     } catch (err) {
       console.error('Failed to load cleaner tasks:', err);
     } finally {
@@ -380,11 +395,18 @@ const CleanerDashboard = () => {
                         {status === 'in-progress' && (
                           <>
                             <button
-                              className="btn-status-action btn-complete-cleaning"
-                              onClick={() => handleStatusChange(place._id, 'completed')}
+                              className="btn-status-action btn-start-cleaning"
+                              onClick={() => {
+                                if (selectedPlace) setSelectedPlace(null);
+                                setActiveCleaningPlace(place);
+                              }}
                               disabled={isUpdating}
+                              style={{
+                                background: 'linear-gradient(135deg, #10b981, #059669)',
+                                boxShadow: '0 2px 10px rgba(16, 185, 129, 0.35)',
+                              }}
                             >
-                              {isUpdating ? 'Updating…' : '✓ Mark as Completed'}
+                              ⏱️ View Active Timer
                             </button>
                             <button
                               className="btn-reset-status"
@@ -400,16 +422,8 @@ const CleanerDashboard = () => {
                         {status === 'completed' && (
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                             <span style={{ fontSize: 12.5, color: '#34d399', fontWeight: 600 }}>
-                              ✓ Finished {place.lastCleanedAt ? new Date(place.lastCleanedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
+                              ✓ Completed {place.lastCleanedAt ? new Date(place.lastCleanedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''}
                             </span>
-                            <button
-                              className="btn-reset-status"
-                              onClick={() => handleStatusChange(place._id, 'in-progress')}
-                              disabled={isUpdating}
-                              title="Re-open task"
-                            >
-                              Re-open
-                            </button>
                           </div>
                         )}
                       </div>

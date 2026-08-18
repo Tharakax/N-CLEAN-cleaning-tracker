@@ -421,25 +421,26 @@ const TaskDetailsModal = ({ place, onClose, onStatusChange, isUpdating, currentU
                     Reset to To-Do
                   </button>
                   <button
-                    className="btn-status-action btn-complete-cleaning"
-                    onClick={() => onStatusChange(place._id, 'completed')}
+                    className="btn-status-action btn-start-cleaning"
+                    onClick={() => onStatusChange(place._id, 'in-progress')}
                     disabled={isUpdating}
-                    style={{ padding: '10px 20px', fontSize: 14 }}
+                    style={{
+                      padding: '10px 20px',
+                      fontSize: 14,
+                      background: 'linear-gradient(135deg, #10b981, #059669)',
+                    }}
                   >
-                    {isUpdating ? 'Updating…' : '✓ Mark as Completed'}
+                    ⏱️ View Active Timer
                   </button>
                 </>
               )}
 
               {status === 'completed' && (
-                <button
-                  className="btn-reset-status"
-                  onClick={() => onStatusChange(place._id, 'in-progress')}
-                  disabled={isUpdating}
-                  style={{ padding: '9px 16px' }}
-                >
-                  🔄 Re-open Task
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontSize: 13, color: '#34d399', fontWeight: 700 }}>
+                    ✓ Cleaning Finished {place.lastCleanedAt ? `at ${new Date(place.lastCleanedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''}
+                  </span>
+                </div>
               )}
             </div>
           </div>

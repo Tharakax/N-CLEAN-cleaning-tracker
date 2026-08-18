@@ -89,6 +89,7 @@ const createCleaningLog = async (req, res) => {
     // Update the place cleaning status & lastCleanedAt
     place.cleaningStatus = 'completed';
     place.lastCleanedAt = end;
+    place.cleaningStartedAt = null;
     await place.save();
 
     const populated = await cleaningLog.populate([

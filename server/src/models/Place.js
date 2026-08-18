@@ -136,6 +136,10 @@ const placeSchema = new mongoose.Schema(
       enum: ['pending', 'in-progress', 'completed'],
       default: 'pending',
     },
+    cleaningStartedAt: {
+      type: Date,
+      default: null,
+    },
     lastCleanedAt: {
       type: Date,
       default: null,

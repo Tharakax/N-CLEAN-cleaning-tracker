@@ -91,29 +91,71 @@ const ActiveCleaningModal = ({ place, currentUser, onClose, onCompleted }) => {
     return tasksList;
   }, [place]);
 
+  const storageKey = useMemo(() => `nclean_active_session_${place?._id}`, [place?._id]);
+
+  // Load existing session state if already in progress
+  const savedSession = useMemo(() => {
+    try {
+      const stored = localStorage.getItem(storageKey);
+      if (stored) {
+        return JSON.parse(stored);
+      }
+    } catch (e) {
+      console.warn('Error reading active session from localStorage:', e);
+    }
+    // Also check if place model itself has cleaningStartedAt from backend
+    if (place?.cleaningStatus === 'in-progress' && place?.cleaningStartedAt) {
+      return {
+        startTime: place.cleaningStartedAt,
+        phase: 'active',
+        vicinityVerified: true,
+      };
+    }
+    return null;
+  }, [storageKey, place]);
+
   // Phase: 'verifying' | 'active' | 'summary'
-  const [phase, setPhase] = useState('verifying');
+  const [phase, setPhase] = useState(savedSession?.phase || 'verifying');
 
   // Vicinity state
-  const [checkingLocation, setCheckingLocation] = useState(geofenceActive);
-  const [vicinityVerified, setVicinityVerified] = useState(!geofenceActive);
+  const [checkingLocation, setCheckingLocation] = useState(!savedSession && geofenceActive);
+  const [vicinityVerified, setVicinityVerified] = useState(savedSession ? true : !geofenceActive);
   const [currentDistance, setCurrentDistance] = useState(null);
-  const [userLocation, setUserLocation] = useState(null);
+  const [userLocation, setUserLocation] = useState(savedSession?.userLocation || null);
   const [locationError, setLocationError] = useState('');
 
   // Active Task & Timer state
   const totalEstimatedSeconds = (place?.estimatedTimeMinutes || 60) * 60;
-  const [timeRemaining, setTimeRemaining] = useState(totalEstimatedSeconds);
-  const [exactElapsedSeconds, setExactElapsedSeconds] = useState(0);
-  const [startTime, setStartTime] = useState(null);
-  const [tasks, setTasks] = useState(initialTasks);
+
+  const initialStart = savedSession?.startTime ? new Date(savedSession.startTime) : null;
+  const initialElapsed = initialStart
+    ? Math.max(0, Math.floor((new Date().getTime() - initialStart.getTime()) / 1000))
+    : 0;
+
+  const [startTime, setStartTime] = useState(initialStart);
+  const [exactElapsedSeconds, setExactElapsedSeconds] = useState(initialElapsed);
+  const [timeRemaining, setTimeRemaining] = useState(totalEstimatedSeconds - initialElapsed);
+
+  const [tasks, setTasks] = useState(() => {
+    if (savedSession?.tasks && Array.isArray(savedSession.tasks)) {
+      return savedSession.tasks;
+    }
+    return initialTasks;
+  });
+
   const [submitting, setSubmitting] = useState(false);
   const [completionResult, setCompletionResult] = useState(null);
 
   const timerRef = useRef(null);
 
-  // Check GPS vicinity
+  // Check GPS vicinity (only if not already restored from active session)
   const verifyLocation = useCallback(() => {
+    if (phase === 'active' || savedSession) {
+      setVicinityVerified(true);
+      setCheckingLocation(false);
+      return;
+    }
+
     if (!geofenceActive) {
       setVicinityVerified(true);
       setCheckingLocation(false);
@@ -159,21 +201,38 @@ const ActiveCleaningModal = ({ place, currentUser, onClose, onCompleted }) => {
       },
       { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
     );
-  }, [geofenceActive, targetLat, targetLng, allowedRadius]);
+  }, [geofenceActive, targetLat, targetLng, allowedRadius, phase, savedSession]);
 
   useEffect(() => {
     verifyLocation();
   }, [verifyLocation]);
 
-  // Timer interval when active
+  // Sync session state to localStorage when active
   useEffect(() => {
     if (phase === 'active' && startTime) {
-      timerRef.current = setInterval(() => {
+      const sessionData = {
+        startTime: startTime.toISOString(),
+        phase: 'active',
+        tasks,
+        userLocation,
+        placeId: place._id,
+      };
+      localStorage.setItem(storageKey, JSON.stringify(sessionData));
+    }
+  }, [phase, startTime, tasks, userLocation, storageKey, place._id]);
+
+  // Timer interval when active (always re-calculated from true startTime to preserve accuracy)
+  useEffect(() => {
+    if (phase === 'active' && startTime) {
+      const tick = () => {
         const now = new Date();
-        const elapsed = Math.floor((now.getTime() - startTime.getTime()) / 1000);
+        const elapsed = Math.max(0, Math.floor((now.getTime() - startTime.getTime()) / 1000));
         setExactElapsedSeconds(elapsed);
         setTimeRemaining(totalEstimatedSeconds - elapsed);
-      }, 1000);
+      };
+
+      tick(); // Immediate tick
+      timerRef.current = setInterval(tick, 1000);
     }
 
     return () => {
@@ -183,16 +242,19 @@ const ActiveCleaningModal = ({ place, currentUser, onClose, onCompleted }) => {
 
   // Handle Confirm Start
   const handleConfirmStart = async () => {
-    try {
-      // Mark status in-progress on backend
-      await API.patch(`/places/${place._id}/status`, { status: 'in-progress' });
-    } catch (err) {
-      console.warn('Status patch notice:', err);
-    }
-
     const start = new Date();
     setStartTime(start);
     setPhase('active');
+
+    try {
+      // Mark status in-progress on backend with startedAt timestamp
+      await API.patch(`/places/${place._id}/status`, {
+        status: 'in-progress',
+        startedAt: start.toISOString(),
+      });
+    } catch (err) {
+      console.warn('Status patch notice:', err);
+    }
   };
 
   // Toggle individual task completed
@@ -250,6 +312,9 @@ const ActiveCleaningModal = ({ place, currentUser, onClose, onCompleted }) => {
     setSubmitting(true);
     try {
       const { data } = await API.post('/cleaning-logs', payload);
+      // Clean up localStorage session
+      localStorage.removeItem(storageKey);
+
       setCompletionResult({
         ...data,
         exactSeconds: finalSeconds,

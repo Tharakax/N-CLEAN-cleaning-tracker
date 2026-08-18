@@ -359,7 +359,7 @@ const updatePlaceCleaningStatus = async (req, res) => {
     const place = await Place.findById(req.params.id);
     if (!place) return res.status(404).json({ message: 'Place not found' });
 
-    // If cleaner, verify they are assigned
+    // If cleaner, verify they are assigned and not trying to re-open a completed task
     if (req.user.role === 'cleaner') {
       const isAssigned = place.assignedCleaners.some(
         (id) => id.toString() === req.user._id.toString()
@@ -367,11 +367,22 @@ const updatePlaceCleaningStatus = async (req, res) => {
       if (!isAssigned) {
         return res.status(403).json({ message: 'You are not assigned to this cleaning place' });
       }
+
+      if (place.cleaningStatus === 'completed') {
+        return res.status(403).json({
+          message: 'This cleaning task is already completed and cannot be re-opened by cleaners.',
+        });
+      }
     }
 
     place.cleaningStatus = status;
-    if (status === 'completed') {
+    if (status === 'in-progress') {
+      place.cleaningStartedAt = req.body.startedAt ? new Date(req.body.startedAt) : (place.cleaningStartedAt || new Date());
+    } else if (status === 'completed') {
       place.lastCleanedAt = new Date();
+      place.cleaningStartedAt = null;
+    } else if (status === 'pending') {
+      place.cleaningStartedAt = null;
     }
     await place.save();
 
