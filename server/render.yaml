@@ -1,0 +1,41 @@
+# render.yaml — N-CLEAN Backend (Express / MongoDB API)
+# Used for Option 2: Split deployment — backend on Render, frontend on Vercel.
+#
+# Usage:
+#   1. Push this repo to GitHub.
+#   2. On Render: New + ? Blueprint ? connect your repo.
+#      Render will detect this file and create the service automatically.
+#   3. Fill in the secret environment variables (MONGO_URI, JWT_SECRET, CLIENT_URL)
+#      in the Render dashboard after the first deploy.
+
+services:
+  - type: web
+    name: nclean-api
+    runtime: node
+    plan: free                          # change to "starter" for always-on
+    rootDir: server                     # only the server/ directory is deployed
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health        # adjust if you add a health-check route
+
+    envVars:
+      # -- Required -----------------------------------------------------------
+      - key: NODE_ENV
+        value: production
+
+      - key: MONGO_URI
+        sync: false                     # set manually in Render dashboard
+
+      - key: JWT_SECRET
+        generateValue: true             # Render auto-generates a secure random value
+
+      # -- CORS ---------------------------------------------------------------
+      # Set this to your Vercel frontend URL so the CORS middleware allows it.
+      # Example: https://nclean.vercel.app
+      # You can comma-separate multiple origins:  https://a.vercel.app,https://b.vercel.app
+      - key: CLIENT_URL
+        sync: false                     # set manually in Render dashboard
+
+      # -- Optional -----------------------------------------------------------
+      - key: PORT
+        value: "5000"                   # Render overrides this with its own $PORT; safe to keep
