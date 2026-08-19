@@ -20,7 +20,7 @@ function RoleRedirect() {
 function App() {
   return (
     <AuthProvider>
-      <Router>
+      <Router basename={import.meta.env.BASE_URL}>
         <Routes>
           {/* Public */}
           <Route path="/login" element={<Login />} />
