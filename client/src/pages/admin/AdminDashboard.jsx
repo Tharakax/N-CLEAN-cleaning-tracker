@@ -957,7 +957,7 @@ const AdminDashboard = () => {
                       <div className="settings-row-label">Application</div>
                       <div className="settings-row-desc">N-CLEAN Cleaning Tracker</div>
                     </div>
-                    <span style={{ fontSize: 12, color: 'var(--text-faint)', background: 'rgba(59,130,246,0.1)', padding: '3px 8px', borderRadius: 6, border: '1px solid rgba(59,130,246,0.2)', color: 'var(--accent-blue-soft)' }}>v1.0</span>
+                    <span style={{ fontSize: 12, color: 'var(--accent-blue-soft)', background: 'rgba(59,130,246,0.1)', padding: '3px 8px', borderRadius: 6, border: '1px solid rgba(59,130,246,0.2)' }}>v1.0</span>
                   </div>
 
                   <div className="settings-row">

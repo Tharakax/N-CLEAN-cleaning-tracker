@@ -1,5 +1,5 @@
-# render.yaml — N-CLEAN Backend (Express / MongoDB API)
-# Used for Option 2: Split deployment — backend on Render, frontend on Vercel.
+# render.yaml ï¿½ N-CLEAN Backend (Express / MongoDB API)
+# Used for Option 2: Split deployment ï¿½ backend on Render, frontend on Vercel.
 #
 # Usage:
 #   1. Push this repo to GitHub.
