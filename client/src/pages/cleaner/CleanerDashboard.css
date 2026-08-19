@@ -1,11 +1,12 @@
 /* ── Cleaner Dashboard Custom Styles ──────────────────────────── */
 .cleaner-root {
   min-height: 100vh;
-  background: #070d18;
-  color: #e2e8f0;
+  background: var(--cleaner-bg);
+  color: var(--text-secondary);
   font-family: 'Inter', sans-serif;
   display: flex;
   flex-direction: column;
+  transition: background 0.3s ease, color 0.3s ease;
 }
 
 /* Header */
@@ -14,12 +15,13 @@
   align-items: center;
   justify-content: space-between;
   padding: 16px 24px;
-  background: rgba(10, 18, 32, 0.9);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--cleaner-header-bg);
+  border-bottom: 1px solid var(--border-default);
   position: sticky;
   top: 0;
   z-index: 50;
   backdrop-filter: blur(16px);
+  transition: background 0.3s ease, border-color 0.3s ease;
 }
 
 .cleaner-brand {
@@ -43,12 +45,12 @@
 .cleaner-brand-name {
   font-size: 17px;
   font-weight: 800;
-  color: #fff;
+  color: var(--text-primary);
   letter-spacing: -0.3px;
 }
 
 .cleaner-brand-name span {
-  color: #10b981;
+  color: var(--accent-green);
 }
 
 .cleaner-user-menu {
@@ -62,8 +64,8 @@
   align-items: center;
   gap: 10px;
   padding: 6px 12px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--bg-glass);
+  border: 1px solid var(--border-default);
   border-radius: 100px;
 }
 
@@ -83,7 +85,7 @@
 .cleaner-avatar-name {
   font-size: 13px;
   font-weight: 600;
-  color: #f1f5f9;
+  color: var(--text-primary);
 }
 
 .cleaner-logout-btn {
@@ -144,7 +146,7 @@
 .cleaner-welcome-greeting {
   font-size: 12.5px;
   font-weight: 700;
-  color: #34d399;
+  color: var(--accent-green-soft);
   text-transform: uppercase;
   letter-spacing: 1px;
   margin-bottom: 4px;
@@ -153,13 +155,13 @@
 .cleaner-welcome-title {
   font-size: 22px;
   font-weight: 800;
-  color: #fff;
+  color: var(--text-primary);
   margin-bottom: 4px;
 }
 
 .cleaner-welcome-sub {
   font-size: 13.5px;
-  color: #94a3b8;
+  color: var(--text-muted);
 }
 
 /* Quick Metrics */
@@ -171,13 +173,14 @@
 }
 
 .cleaner-metric-card {
-  background: rgba(15, 23, 42, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--cleaner-metric-bg);
+  border: 1px solid var(--border-default);
   border-radius: 14px;
   padding: 14px 16px;
   display: flex;
   align-items: center;
   gap: 12px;
+  transition: background 0.3s ease;
 }
 
 .cleaner-metric-icon {
@@ -193,13 +196,13 @@
 .cleaner-metric-val {
   font-size: 20px;
   font-weight: 800;
-  color: #fff;
+  color: var(--text-primary);
   line-height: 1.2;
 }
 
 .cleaner-metric-label {
   font-size: 11.5px;
-  color: #94a3b8;
+  color: var(--text-muted);
   font-weight: 500;
 }
 
@@ -208,7 +211,7 @@
   display: flex;
   gap: 8px;
   margin-bottom: 20px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid var(--border-default);
   padding-bottom: 12px;
   overflow-x: auto;
 }
@@ -218,7 +221,7 @@
   border: 1px solid transparent;
   padding: 8px 16px;
   border-radius: 100px;
-  color: #94a3b8;
+  color: var(--text-muted);
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -230,14 +233,14 @@
 }
 
 .cleaner-tab-btn:hover {
-  background: rgba(255, 255, 255, 0.05);
-  color: #e2e8f0;
+  background: var(--bg-glass);
+  color: var(--text-secondary);
 }
 
 .cleaner-tab-btn.active {
-  background: rgba(16, 185, 129, 0.15);
-  border-color: rgba(16, 185, 129, 0.35);
-  color: #34d399;
+  background: var(--cleaner-tab-active-bg);
+  border-color: var(--cleaner-tab-active-border);
+  color: var(--cleaner-tab-active-color);
 }
 
 .cleaner-tab-badge {
@@ -257,12 +260,12 @@
 
 /* Cleaner Task Card */
 .cleaner-task-card {
-  background: rgba(15, 23, 42, 0.85);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--cleaner-task-bg);
+  border: 1px solid var(--border-default);
   border-radius: 16px;
   padding: 20px;
-  transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s, background 0.3s;
+  box-shadow: var(--shadow-card);
   display: grid;
   grid-template-columns: 200px 1fr;
   gap: 20px;
@@ -275,7 +278,7 @@
 
 .cleaner-task-card.completed {
   border-color: rgba(16, 185, 129, 0.2);
-  background: rgba(15, 23, 42, 0.5);
+  background: var(--panel-bg);
   opacity: 0.9;
 }
 
@@ -286,7 +289,7 @@
   position: relative;
   height: 100%;
   min-height: 140px;
-  background: #0b1220;
+  background: var(--cleaner-task-media-bg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -316,13 +319,13 @@
 .cleaner-task-title {
   font-size: 17px;
   font-weight: 700;
-  color: #fff;
+  color: var(--text-primary);
   margin: 0 0 4px;
 }
 
 .cleaner-task-address {
   font-size: 13px;
-  color: #94a3b8;
+  color: var(--text-muted);
   display: flex;
   align-items: center;
   gap: 5px;
@@ -371,9 +374,9 @@
   font-size: 12px;
   padding: 4px 10px;
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  color: #cbd5e1;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -385,7 +388,7 @@
   align-items: center;
   justify-content: space-between;
   padding-top: 14px;
-  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 1px solid var(--border-subtle);
   gap: 12px;
   flex-wrap: wrap;
 }
@@ -433,9 +436,9 @@
 }
 
 .btn-reset-status {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  color: #94a3b8;
+  background: var(--bg-glass);
+  border: 1px solid var(--border-medium);
+  color: var(--text-muted);
   padding: 7px 12px;
   border-radius: 8px;
   font-size: 12px;
@@ -444,8 +447,8 @@
 }
 
 .btn-reset-status:hover {
-  background: rgba(255, 255, 255, 0.12);
-  color: #fff;
+  background: var(--border-medium);
+  color: var(--text-primary);
 }
 
 /* Responsive */

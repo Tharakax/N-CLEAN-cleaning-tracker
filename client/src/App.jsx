@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
 import PrivateRoute from './components/PrivateRoute';
 
 // Pages
@@ -19,6 +20,7 @@ function RoleRedirect() {
 
 function App() {
   return (
+    <ThemeProvider>
     <AuthProvider>
       <Router basename={import.meta.env.BASE_URL}>
         <Routes>
@@ -63,6 +65,7 @@ function App() {
         </Routes>
       </Router>
     </AuthProvider>
+    </ThemeProvider>
   );
 }
 

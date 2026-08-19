@@ -8,6 +8,8 @@ import AddPlaceModal from '../../components/AddPlaceModal';
 import AssignCleanerModal from '../../components/AssignCleanerModal';
 import EditPlaceModal from '../../components/EditPlaceModal';
 import ReportsView from '../../components/ReportsView';
+import ThemeToggle from '../../components/ThemeToggle';
+import '../../components/ReportsView.css';
 
 /* ── helpers ──────────────────────────────────────────────────── */
 const initials = (name = '') =>
@@ -652,7 +654,7 @@ const AdminDashboard = () => {
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20, gap: 12, flexWrap: 'wrap' }}>
                 <div>
                   <h3 className="section-heading" style={{ margin: 0 }}><span />Cleaning Places</h3>
-                  <p style={{ margin: '4px 0 0', fontSize: 13, color: '#64748b' }}>
+                  <p style={{ margin: '4px 0 0', fontSize: 13, color: 'var(--text-faint)' }}>
                     Manage all facility locations and assign registered cleaners.
                   </p>
                 </div>
@@ -674,8 +676,8 @@ const AdminDashboard = () => {
               ) : places.length === 0 ? (
                 <div className="empty-state" style={{ padding: 60 }}>
                   <div className="empty-state-icon">📍</div>
-                  <div style={{ fontSize: 16, fontWeight: 600, color: '#f1f5f9', marginBottom: 6 }}>No Cleaning Places Yet</div>
-                  <p style={{ color: '#64748b', maxWidth: 360, margin: '0 auto 18px' }}>
+                  <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 6 }}>No Cleaning Places Yet</div>
+                  <p style={{ color: 'var(--text-faint)', maxWidth: 360, margin: '0 auto 18px' }}>
                     Add locations needing cleaning to assign cleaners and track operations.
                   </p>
                   <button className="btn-create" onClick={() => setShowAddPlace(true)}>
@@ -771,7 +773,7 @@ const AdminDashboard = () => {
             <div className="panel">
               <div style={{ marginBottom: 20 }}>
                 <h3 className="section-heading" style={{ margin: '0 0 4px' }}><span />Cleaning Tasks</h3>
-                <p style={{ margin: 0, fontSize: 13, color: '#64748b' }}>
+                <p style={{ margin: 0, fontSize: 13, color: 'var(--text-faint)' }}>
                   Overview of all cleaners and their individual assigned cleaning areas.
                 </p>
               </div>
@@ -817,63 +819,63 @@ const AdminDashboard = () => {
                         return { place: p, myAreas };
                       });
                       const totalAreas = areaAssignedPlaces.reduce((sum, x) => sum + x.myAreas.length, 0);
-                      return (
-                        <div key={cleaner._id} style={{ background: 'rgba(15, 23, 42, 0.7)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 14, overflow: 'hidden' }}>
-                          <div style={{ padding: '14px 18px', background: 'rgba(30, 41, 59, 0.5)', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-                            <div className="user-mini-avatar" style={{ background: 'linear-gradient(135deg, #10b981, #06b6d4)', width: 38, height: 38, fontSize: 13, flexShrink: 0 }}>
-                              {initials(cleaner.name)}
-                            </div>
-                            <div style={{ flex: 1, minWidth: 0 }}>
-                              <div style={{ fontWeight: 700, fontSize: 14, color: '#f1f5f9' }}>{cleaner.name}</div>
-                              <div style={{ fontSize: 12, color: '#64748b' }}>{cleaner.email}</div>
-                            </div>
-                            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                              <span style={{ fontSize: 12, fontWeight: 600, padding: '3px 10px', borderRadius: 8, background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.25)', color: '#93c5fd' }}>
-                                📍 {cleanerPlaces.length} Place{cleanerPlaces.length !== 1 ? 's' : ''}
-                              </span>
-                              {totalAreas > 0 && (
-                                <span style={{ fontSize: 12, fontWeight: 600, padding: '3px 10px', borderRadius: 8, background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.25)', color: '#34d399' }}>
-                                  🚪 {totalAreas} Area{totalAreas !== 1 ? 's' : ''}
+                        return (
+                         <div key={cleaner._id} className="task-cleaner-card">
+                            <div className="task-cleaner-header">
+                              <div className="user-mini-avatar" style={{ background: 'linear-gradient(135deg, #10b981, #06b6d4)', width: 38, height: 38, fontSize: 13, flexShrink: 0 }}>
+                                {initials(cleaner.name)}
+                              </div>
+                              <div style={{ flex: 1, minWidth: 0 }}>
+                                <div className="task-cleaner-name">{cleaner.name}</div>
+                                <div className="task-cleaner-email">{cleaner.email}</div>
+                              </div>
+                              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                                <span style={{ fontSize: 12, fontWeight: 600, padding: '3px 10px', borderRadius: 8, background: 'rgba(59,130,246,0.12)', border: '1px solid rgba(59,130,246,0.25)', color: '#93c5fd' }}>
+                                  📍 {cleanerPlaces.length} Place{cleanerPlaces.length !== 1 ? 's' : ''}
                                 </span>
-                              )}
+                                {totalAreas > 0 && (
+                                  <span style={{ fontSize: 12, fontWeight: 600, padding: '3px 10px', borderRadius: 8, background: 'rgba(16,185,129,0.12)', border: '1px solid rgba(16,185,129,0.25)', color: '#34d399' }}>
+                                    🚪 {totalAreas} Area{totalAreas !== 1 ? 's' : ''}
+                                  </span>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                          {cleanerPlaces.length === 0 ? (
-                            <div style={{ padding: '16px 18px', fontSize: 13, color: '#475569', fontStyle: 'italic' }}>⚠️ No places or areas assigned yet.</div>
-                          ) : (
-                            <div style={{ padding: '12px 18px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-                              {areaAssignedPlaces.map(({ place: p, myAreas }) => (
-                                <div key={p._id} style={{ background: 'rgba(30, 41, 59, 0.4)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 10, padding: '10px 14px' }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: myAreas.length > 0 ? 8 : 0, flexWrap: 'wrap' }}>
-                                    <div>
-                                      <div style={{ fontWeight: 600, fontSize: 13.5, color: '#f1f5f9' }}>{p.name}</div>
-                                      <div style={{ fontSize: 11.5, color: '#64748b', marginTop: 1 }}>📍 {p.address}</div>
+                            {cleanerPlaces.length === 0 ? (
+                              <div className="task-no-assignment">⚠️ No places or areas assigned yet.</div>
+                            ) : (
+                              <div style={{ padding: '12px 18px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                {areaAssignedPlaces.map(({ place: p, myAreas }) => (
+                                  <div key={p._id} className="task-place-card">
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: myAreas.length > 0 ? 8 : 0, flexWrap: 'wrap' }}>
+                                      <div>
+                                        <div className="task-place-name">{p.name}</div>
+                                        <div className="task-place-address">📍 {p.address}</div>
+                                      </div>
+                                      <span className={`cleaner-status-badge ${p.cleaningStatus || 'pending'}`} style={{ fontSize: 11, padding: '3px 10px' }}>
+                                        {p.cleaningStatus === 'completed' ? '✓ Completed' : p.cleaningStatus === 'in-progress' ? '🚀 In-Progress' : '⏳ To Do'}
+                                      </span>
                                     </div>
-                                    <span className={`cleaner-status-badge ${p.cleaningStatus || 'pending'}`} style={{ fontSize: 11, padding: '3px 10px' }}>
-                                      {p.cleaningStatus === 'completed' ? '✓ Completed' : p.cleaningStatus === 'in-progress' ? '🚀 In-Progress' : '⏳ To Do'}
-                                    </span>
+                                    {myAreas.length > 0 ? (
+                                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                                        {myAreas.map((a, i) => {
+                                          const icons = { room:'🚪', sauna:'🧖‍♂️', hall:'🏛️', restroom:'🚻', kitchen:'🍳', lobby:'🏨', office:'💼', corridor:'🚶', other:'📍' };
+                                          return (
+                                            <span key={i} className="task-area-tag">
+                                              {icons[a.type] || '🚪'} {a.area}
+                                              <span className="task-area-floor">({a.floor})</span>
+                                            </span>
+                                          );
+                                        })}
+                                      </div>
+                                    ) : (
+                                      <div className="task-whole-place-note">Assigned to whole place (no specific areas)</div>
+                                    )}
                                   </div>
-                                  {myAreas.length > 0 ? (
-                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-                                      {myAreas.map((a, i) => {
-                                        const icons = { room:'🚪', sauna:'🧖‍♂️', hall:'🏛️', restroom:'🚻', kitchen:'🍳', lobby:'🏨', office:'💼', corridor:'🚶', other:'📍' };
-                                        return (
-                                          <span key={i} style={{ fontSize: 11.5, fontWeight: 600, background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.2)', color: '#93c5fd', padding: '2px 8px', borderRadius: 100, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-                                            {icons[a.type] || '🚪'} {a.area}
-                                            <span style={{ fontSize: 10, color: '#64748b', marginLeft: 2 }}>({a.floor})</span>
-                                          </span>
-                                        );
-                                      })}
-                                    </div>
-                                  ) : (
-                                    <div style={{ fontSize: 11.5, color: '#64748b', fontStyle: 'italic' }}>Assigned to whole place (no specific areas)</div>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      );
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        );
                     })}
                   </div>
                 );
@@ -886,7 +888,7 @@ const AdminDashboard = () => {
             <div className="panel">
               <div style={{ marginBottom: 20 }}>
                 <h3 className="section-heading" style={{ margin: '0 0 4px' }}><span />Cleaning Reports & Analytics</h3>
-                <p style={{ margin: 0, fontSize: 13, color: '#64748b' }}>
+                <p style={{ margin: 0, fontSize: 13, color: 'var(--text-faint)' }}>
                   Filter, inspect, and export exact cleaning times, overtime, and rounded billing/payroll hours.
                 </p>
               </div>
@@ -894,15 +896,77 @@ const AdminDashboard = () => {
             </div>
           )}
 
-          {/* ── Settings Placeholder ── */}
+          {/* ── Settings Panel ── */}
           {activeTab === 'settings' && (
-            <div className="panel" style={{ textAlign: 'center', padding: 80 }}>
-              <div style={{ fontSize: 52, marginBottom: 16 }}>⚙️</div>
-              <div style={{ fontSize: 20, fontWeight: 700, color: '#f1f5f9', marginBottom: 8 }}>
-                Settings
+            <div className="panel">
+              <div style={{ marginBottom: 28 }}>
+                <h3 className="section-heading" style={{ margin: '0 0 4px' }}><span />System Settings</h3>
+                <p style={{ margin: 0, fontSize: 13, color: 'var(--text-faint)' }}>
+                  Manage appearance and preferences for your N-CLEAN workspace.
+                </p>
               </div>
-              <div style={{ fontSize: 14, color: '#475569' }}>
-                System configuration & preferences.
+
+              <div className="settings-panel">
+                {/* Appearance */}
+                <div className="settings-section">
+                  <div className="settings-section-title">🎨 Appearance</div>
+
+                  <div className="settings-row">
+                    <div className="settings-row-info">
+                      <div className="settings-row-label">Theme Mode</div>
+                      <div className="settings-row-desc">
+                        Switch between dark and light mode. Your preference is saved automatically.
+                      </div>
+                    </div>
+                    <ThemeToggle />
+                  </div>
+                </div>
+
+                {/* Account Info */}
+                <div className="settings-section">
+                  <div className="settings-section-title">👤 Account</div>
+
+                  <div className="settings-row">
+                    <div className="settings-row-info">
+                      <div className="settings-row-label">Name</div>
+                      <div className="settings-row-desc">{user?.name || '—'}</div>
+                    </div>
+                  </div>
+
+                  <div className="settings-row">
+                    <div className="settings-row-info">
+                      <div className="settings-row-label">Email</div>
+                      <div className="settings-row-desc">{user?.email || '—'}</div>
+                    </div>
+                  </div>
+
+                  <div className="settings-row">
+                    <div className="settings-row-info">
+                      <div className="settings-row-label">Role</div>
+                      <div className="settings-row-desc" style={{ textTransform: 'capitalize' }}>{user?.role || '—'}</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* System Info */}
+                <div className="settings-section">
+                  <div className="settings-section-title">ℹ️ System</div>
+
+                  <div className="settings-row">
+                    <div className="settings-row-info">
+                      <div className="settings-row-label">Application</div>
+                      <div className="settings-row-desc">N-CLEAN Cleaning Tracker</div>
+                    </div>
+                    <span style={{ fontSize: 12, color: 'var(--text-faint)', background: 'rgba(59,130,246,0.1)', padding: '3px 8px', borderRadius: 6, border: '1px solid rgba(59,130,246,0.2)', color: 'var(--accent-blue-soft)' }}>v1.0</span>
+                  </div>
+
+                  <div className="settings-row">
+                    <div className="settings-row-info">
+                      <div className="settings-row-label">Portal</div>
+                      <div className="settings-row-desc">Administrator Dashboard</div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           )}

@@ -344,20 +344,20 @@ const ReportsView = () => {
             </div>
           ) : logs.length === 0 ? (
             <div
-              style={{
-                padding: '60px 20px',
-                textAlign: 'center',
-                color: '#64748b',
-              }}
-            >
-              <div style={{ fontSize: 40, marginBottom: 10 }}>📊</div>
-              <div style={{ fontSize: 16, fontWeight: 700, color: '#f1f5f9', marginBottom: 4 }}>
-                No Cleaning Records Found
-              </div>
-              <div style={{ fontSize: 13 }}>
-                Adjust your filters above or check back once cleaners finish assignments.
-              </div>
+            style={{
+              padding: '60px 20px',
+              textAlign: 'center',
+              color: 'var(--text-faint)',
+            }}
+          >
+            <div style={{ fontSize: 40, marginBottom: 10 }}>📊</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 4 }}>
+              No Cleaning Records Found
             </div>
+            <div style={{ fontSize: 13 }}>
+              Adjust your filters above or check back once cleaners finish assignments.
+            </div>
+          </div>
           ) : (
             <table className="reports-data-table">
               <thead>
@@ -393,27 +393,27 @@ const ReportsView = () => {
                   return (
                     <tr key={log._id}>
                       <td>
-                        <div style={{ fontWeight: 700, color: '#f1f5f9' }}>{dateStr}</div>
-                        <div style={{ fontSize: 11.5, color: '#64748b', marginTop: 2 }}>
+                        <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{dateStr}</div>
+                        <div style={{ fontSize: 11.5, color: 'var(--text-faint)', marginTop: 2 }}>
                           {timeRangeStr}
                         </div>
                       </td>
 
                       <td>
-                        <div style={{ fontWeight: 600, color: '#93c5fd' }}>
+                        <div style={{ fontWeight: 600, color: 'var(--accent-blue-soft)' }}>
                           🧹 {cleanerName}
                         </div>
-                        <div style={{ fontSize: 11, color: '#64748b' }}>
+                        <div style={{ fontSize: 11, color: 'var(--text-faint)' }}>
                           {log.cleaner?.email || ''}
                         </div>
                       </td>
 
                       <td>
-                        <div style={{ fontWeight: 600, color: '#f1f5f9' }}>{placeName}</div>
+                        <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{placeName}</div>
                         <div
                           style={{
                             fontSize: 11,
-                            color: '#64748b',
+                            color: 'var(--text-faint)',
                             maxWidth: 180,
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
@@ -484,7 +484,7 @@ const ReportsView = () => {
                             style={{
                               fontSize: 11.5,
                               fontWeight: 600,
-                              color: '#94a3b8',
+                              color: 'var(--text-muted)',
                             }}
                           >
                             Off / Direct

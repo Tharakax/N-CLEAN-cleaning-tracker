@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import API from '../../api/axios';
 import TaskDetailsModal from '../../components/TaskDetailsModal';
 import ActiveCleaningModal from '../../components/ActiveCleaningModal';
+import ThemeToggle from '../../components/ThemeToggle';
 import './CleanerDashboard.css';
 
 /* ── helpers ──────────────────────────────────────────────────── */
@@ -133,6 +134,8 @@ const CleanerDashboard = () => {
             <div className="cleaner-avatar-circle">{initials(user?.name)}</div>
             <span className="cleaner-avatar-name">{user?.name?.split(' ')[0] || 'Cleaner'}</span>
           </div>
+
+          <ThemeToggle />
 
           <button className="cleaner-logout-btn" onClick={handleLogout} title="Sign Out">
             <span>🚪</span> Sign Out
